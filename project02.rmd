@@ -1,0 +1,51 @@
+---
+title: "Project 2 Deliverable"
+author: "Steffani Gomez"
+date: "July 21, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The Concept and Why You Should Care
+
+I wanted to do a variety of things for the final project and push myself to really use the most I can out of R and use my computer science skills.
+
+North Carolina is arguably the state with the most breweries in the country. Beer is one of the three kinds of liquor you can buy (wine, liquor, beer) and the advertising for it is everywhere, down a highway or on television, there is almost certainly some kind of advertising for some sort of beer, perhaps one you've never heard of. And if you've ever seen the SuperBowl, you've definitely seen the [halftime commercials for beer](https://www.youtube.com/watch?v=aYeXldMEpV8). If that isn't enough to convince anyone, Anheuser-Busch InBev SA/NV is the largest brewery in the world and is one of largest and most profitable fast-moving consumer goods companies in the world, with \$45.5 billion in revenue last year and a projected revenue of $55 billion this year. Craft beer is growing in popularity, so it's safe to say quite a few people care about beer and the money it brings in. 
+
+For this final project I want to focus on beer and breweries in the United States. There will be three large aspects to this project: data wrangling, data visualization, and prediction, the Big Three of data science, with prediction being the side of machine learning I want to focus on, rather than classification. I want to explore the spread of breweries in the United States and I'd like to see if there is a viable prediction algorithm for beers, given a beer/brewery and its characteristics, can we predict how well-liked the beer will be? This has huge implications for owners of breweries, if ratings can be predicted, then one can aim to create a beer that will be well-liked, and if certain locations are more open to certain kinds of beer, then marketing for that specific kind of beer should be increased in those areas. This is just an example of what the possible results of this project can mean in the real world. 
+
+## Datasets
+I will be using data from two websites, [BreweryDB](http://www.brewerydb.com/) and [RateBeer](https://www.ratebeer.com/). BreweryDB will be my main source of data, with RateBeer providing ratings of the beers based on community reviews. These two websites are well known and are often used in "beer analytics" and have reputable communities behind them, with revisions being made every day. BreweryDB maintains a staff that checks the authenticity of beers and breweries and the statistics of them, and RateBeer will provide the ratings and the number of reviewers so we can determine whether to trust an average rating when there has only been 2 reviewers for example. Getting data out of these websites is where the data wrangling portion of this project is. 
+
+BreweryDB provides just about all the information you could want about a brewery and the different beers it produces. The information I will be using from BreweryDB is: 
+
+  - beer name
+  - beer category (categories based off of the [Brewers Association Style Guidelines](https://www.brewersassociation.org/resources/brewers-association-beer-style-guidelines/))
+  - beer style (the styles of beers within each category)
+  - brewery location
+  - brewery name
+  - brewery type
+  - social media accounts of the breweries
+  
+RateBeer will only be used to associate ratings, which it provides, to the beers found in BreweryDB. 
+
+I will be using the [BreweryDB API](http://www.brewerydb.com/developers/docs) to access its database and I will be accessing it from my R program. RateBeer is much trickier since its API has been down for a number of years now. However, thanks to GitHub and open-sourcing, there is a kind soul who created a [Python wrapper](https://github.com/alilja/ratebeer) to scrape data off of RateBeer and return it in the same manner that an API would. So I will write a script in Python to get the ratings data and call that script from R. I foresee that the main issue will be differences in beer names between the two website and I'm sure that some beers will exist in one dataset but won't exist in the other, but that's what data wrangling is all about!
+
+## Methodology
+There are three main results I hope to deliver by the end of this project:
+
+  1. Create an interactive geovisualization of the location of different breweries in the United States and the beers that they offer, with filters for regions, beer category, beer style, age of the breweries, and kinds of breweries. 
+  2. Create an interactive geovisualization for the location of different breweries and the ratings of the beers and be able to filter by location and ratings. The goal of these visualizations is to explore the data and see if there are any patterns that we can use to our advantage. 
+  3. Based on what information the visualizations offer, create a prediction algorithm for beer ratings. Given location, beer category, beer style, alcohol content (ABV, IBU), presence of a social media account, and brewery type, can I create an accurate recommendation algorithm? For this, I hope to use regression. 
+  
+## Schedule
+Because this project is very involved, I am planning on starting the project this week. My plan of action is as follows:
+
+  - Week 1 7/26 - 8/02: Get data out of the BreweryDB API and the RateBeer Python wrapper
+  - Week 2 8/02 - 8/09: Fix discrepancies between the two datasets and begin to work on the visualizations
+  - Week 3 8/09-8/16: Finish up the visualizations and begin working on the regression formula
+  - Week 4 8/16-8/23: Finish the regression algorithm and add finishing touches to the project
+
