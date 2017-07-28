@@ -28,5 +28,11 @@ beerStylesData$data[[1]]$description
 # however for the purpose of this class we are going to make sure
 # we save all the ids to beers and breweries, styles, categories, 
 # and locations
+
+# this is where data frames come into play, we could have one data frame 
+# with category, style, beer, and brewery all into one
+# with separate frames for category to style and style to beer
+# and beer to brewery (draw it out and see what it looks like)
+
 # then begin porting in data from RateBeer about the different kinds
 # of beers
