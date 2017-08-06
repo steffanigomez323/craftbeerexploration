@@ -68,40 +68,6 @@ breweryAttributes <- c("id", "name", "description")
 locationAttributes <- c("id", "name", "locality", "region", "postalCode", "latitude", "longitude",
                         "locationType", "locationTypeDisplay", "countryIsoCode")
 beers <- read_rds(beersFile)
-
-
-beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(4), withBreweries = "Y")) %>%
-  content(as = "text", encoding = "UTF-8")
-unfilteredBeerData <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data
-for (attr in styleAttributes) {
-  unfilteredBeerData[attr] <- NA
-  unfilteredBeerData[attr] <- unfilteredBeerData$style[attr]  
-}
-breweryids <- NULL
-brewerynames <- NULL
-brewerydescriptions <- NULL
-unnest(unfilteredBeerData %>% select(id, breweries), y = breweries)
-
-ids <- lapply(unfilteredBeerData$breweries, FUN = function(x) { x$id })
-
-is.null(ids[6])
-#lapply(unfilteredBeerData$breweries$[[]], function)
-for (j in 1:length(unfilteredBeerData[,1])) {
-  if (!is.null(unfilteredBeerData$breweries[[j]])) {
-    breweryids <- c(breweryids, list(unfilteredBeerData$breweries[[j]]$id))
-    brewerynames <- c(brewerynames, list(unfilteredBeerData$breweries[[j]]$name))
-    brewerydescriptions <- c(brewerydescriptions, list(unfilteredBeerData$breweries[[j]]$description))
-  } else {
-    breweryids <- c(breweryids, list(NA))
-    brewerynames <- c(brewerynames, list(NA))
-    brewerydescriptions <- c(brewerydescriptions, list(NA))
-  }
-}
-
-unfilteredBeerData$brewery.id <- lapply(unfilteredBeerData$breweries, FUN = function(x) { x$id })
-unfilteredBeerData$brewery.name <- brewerynames
-unfilteredBeerData$brewery.description <- brewerydescriptions
-
 beers <- NULL
 # takes about 40 minutes to fill
 #1:45
@@ -111,10 +77,14 @@ beers <- NULL
 
 # have to change possible NULLs to NAs
 
-for (i in 1:1317) {
+beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(1))) %>%
+  content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
+beerNumPages <- beersRequestData$numberOfPages
+
+for (i in 1:beerNumPages) {
   beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(i), withBreweries = "Y")) %>%
-    content(as = "text", encoding = "UTF-8")
-  unfilteredBeerData <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data
+    content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
+  unfilteredBeerData <- beersRequestData$data
 
   unfilteredBeerData$categoryId <- unfilteredBeerData$style$categoryId
   
@@ -139,6 +109,7 @@ for (i in 1:1317) {
   }
 }
 rm(beersRequestData, unfilteredBeerData, headerstoAdd)
+beers <- write_rds(beersFile)
 beers <- read_rds(beersFile)
 write.csv(beers, beersFile)
 write_rds(beers, beersFile)
@@ -164,8 +135,13 @@ beerCategories <- head(beerCategories, -1) # we have a null row at the end
 breweries <- read_rds(breweriesFile)
 
 breweries <- NULL
+
+breweriesRequestData <- BreweryDB_endpoint(breweryDBKey, "breweries", options = list(p = as.character(1))) %>%
+  content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
+breweryNumPages <- breweriesRequestData$numberOfPages
+
 # takes about 2 minutes
-for (i in 1:184) {
+for (i in 1:breweryNumPages) {
   breweriesRequestData <- BreweryDB_endpoint(breweryDBKey, "breweries", 
                                              options = list(p = as.character(i))) %>%
     content(as = "text", encoding = "UTF-8")
@@ -205,8 +181,13 @@ locations <- read_rds(locationsFile)
 
 
 locations <- NULL
+
+locationsRequestData <- BreweryDB_endpoint(breweryDBKey, "locations", options = list(p = as.character(1))) %>%
+  content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
+locationNumPages <- locationsRequestData$numberOfPages
+
 # takes about 4 minutes
-for (i in 1:203) {
+for (i in 1:locationNumPages) {
   locationsRequestData <- BreweryDB_endpoint(breweryDBKey, "locations", 
                                              options = list(p = as.character(i))) %>%
     content(as = "text", encoding = "UTF-8")
