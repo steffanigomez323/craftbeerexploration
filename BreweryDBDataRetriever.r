@@ -1,8 +1,8 @@
 library(jsonlite) # for working with JSON data
-library(tidyjson) # also for working with JSON data
+#library(tidyjson) # also for working with JSON data
+# ran into bugs in the package so had to ditch it and do it by hand
 library(tidyverse) # to transform and clean data
-library(readr) # for writing beers to a csv for use in pythons
-library(tidyr)
+library(tidyr) # for help with turning JSONs into tidy frames
 
 source("BreweryDBRWrapper.R")
 
@@ -26,57 +26,119 @@ beerStyles <- fromJSON(beerStylesRequestData, simplifyDataFrame = TRUE)$data %>%
          abvMax, srmMin, srmMax, ogMin, fgMin, fgMax) %>%
   as_tibble()
 
+# takes about 40 minutes to fill
+#  id"                        "name"                      "nameDisplay"               "description"              
+# "abv"                       "glasswareId"               "srmId"                     "styleId"                  
+# "isOrganic"                 "status"                    "statusDisplay"             "createDate"               
+# "updateDate"                "glass"                     "srm"                       "style"                    
+# "breweries"                 "ibu"                       "availableId"               "available"                
+# "labels"                    "originalGravity"           "servingTemperature"        "servingTemperatureDisplay"
 
+# beers:
+#  id"                        "name"                      "nameDisplay"               "description"              
+# "abv"                       "glasswareId"               "srmId"                     "styleId"                  
+# "isOrganic"                 "status"                    "statusDisplay"             "createDate"               
+# "updateDate"                "glass"                     "srm"                                          
+# "breweries"                 "ibu"                       "availableId"               "available"                
+# "labels"                    "originalGravity"           "servingTemperature"        "servingTemperatureDisplay"
+#   "style" :
+#       id, categoryId, category (id, name), name, description, ibuMin, ibuMax, abvMax, srmMin, srmMax, 
+#       ogMin, fgMin, fgMax
+#   breweries:
+#     "id"                  "name"                "nameShortDisplay"    "description"         "website"            
+#     "established"         "isOrganic"           "images"              "status"              "statusDisplay"      
+#     "createDate"          "updateDate"          "isMassOwned"         "brandClassification" 
+#     "locations":
+#         "id"                  "name"                "locality"            "region"              "postalCode"         
+#         "website"             "latitude"            "longitude"           "isPrimary"           "inPlanning"         
+#         "isClosed"            "openToPublic"        "locationType"        "locationTypeDisplay" "countryIsoCode"     
+#         "yearOpened"          "status"              "statusDisplay"       "createDate"          "updateDate"         
+#         "country": 
+#             "isoCode"     "name"        "displayName" "isoThree"    "numberCode"  "createDate" 
+
+
+#lfs <- lapply(df$locations, data.frame, stringsasFactors = FALSE)
+#lf <- bind_rows(lfs)
+
+#we will join location later
+
+  
+styleAttributes <- c("categoryId")
+breweryAttributes <- c("id", "name", "description")
+locationAttributes <- c("id", "name", "locality", "region", "postalCode", "latitude", "longitude",
+                        "locationType", "locationTypeDisplay", "countryIsoCode")
 beers <- read_rds(beersFile)
-write_csv(beers, "data/beers.csv")
+
+
+beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(4), withBreweries = "Y")) %>%
+  content(as = "text", encoding = "UTF-8")
+unfilteredBeerData <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data
+for (attr in styleAttributes) {
+  unfilteredBeerData[attr] <- NA
+  unfilteredBeerData[attr] <- unfilteredBeerData$style[attr]  
+}
+breweryids <- NULL
+brewerynames <- NULL
+brewerydescriptions <- NULL
+unnest(unfilteredBeerData %>% select(id, breweries), y = breweries)
+
+ids <- lapply(unfilteredBeerData$breweries, FUN = function(x) { x$id })
+
+is.null(ids[6])
+#lapply(unfilteredBeerData$breweries$[[]], function)
+for (j in 1:length(unfilteredBeerData[,1])) {
+  if (!is.null(unfilteredBeerData$breweries[[j]])) {
+    breweryids <- c(breweryids, list(unfilteredBeerData$breweries[[j]]$id))
+    brewerynames <- c(brewerynames, list(unfilteredBeerData$breweries[[j]]$name))
+    brewerydescriptions <- c(brewerydescriptions, list(unfilteredBeerData$breweries[[j]]$description))
+  } else {
+    breweryids <- c(breweryids, list(NA))
+    brewerynames <- c(brewerynames, list(NA))
+    brewerydescriptions <- c(brewerydescriptions, list(NA))
+  }
+}
+
+unfilteredBeerData$brewery.id <- lapply(unfilteredBeerData$breweries, FUN = function(x) { x$id })
+unfilteredBeerData$brewery.name <- brewerynames
+unfilteredBeerData$brewery.description <- brewerydescriptions
 
 beers <- NULL
 # takes about 40 minutes to fill
-beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = 
-                                         list(p = as.character(1), withBreweries = "Y")) %>% 
-                    content(as = "text", encoding = "UTF-8")
-beers <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data #%>% 
-  #select(id, name, description, abv, ibu, styleId) %>%
-  #as_tibble()
-length(beers$breweries[])
-beerdsmod <- beers  %>% unnest(breweries = strsplit(breweries, ","))
+#1:45
 
+# have to see if we run into any NAs in style
+# then we have to separate rows by breweries and add location ids to them
 
-
-
-
+# have to change possible NULLs to NAs
 
 for (i in 1:1317) {
-  beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(i))) %>%
+  beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(i), withBreweries = "Y")) %>%
     content(as = "text", encoding = "UTF-8")
+  unfilteredBeerData <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data
+
+  unfilteredBeerData$categoryId <- unfilteredBeerData$style$categoryId
+  
+  unfilteredBeerData$breweryId <- lapply(unfilteredBeerData$breweries, FUN = function(x) { x$id })
+  
+
+  headerstoAdd <- setdiff(c("id", "name", "description", "abv", "ibu","styleId"), 
+                          names(unfilteredBeerData))
+  if (!is_empty(headerstoAdd)) {
+    for (colName in headerstoAdd) {
+      unfilteredBeerData[colName] <- NA
+    }
+  }
   if (is.null(beers)) {
-    beers <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data %>% 
-      select(id, name, description, abv, ibu, styleId) %>%
+    beers <- unfilteredBeerData %>%
+      select(id, name, description, abv, ibu, styleId, categoryId, breweryId) %>%
       as_tibble()
   } else {
-    # some beers don't have an ibu content and therefore don't have an ibu column
-    # the same goes for description
-    
-
-    # the headers left to add if there is a column that is missing before we add them
-    headerstoAdd <- setdiff(c("id", "name", "description", "abv", "ibu","styleId"), 
-                            names(fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data))
-    if (is_empty(headerstoAdd)) {
-      beers <- rbind(beers, fromJSON(beersRequestData)$data %>%
-                       select(id, name, description, abv, ibu, styleId) %>%
-                       as_tibble())
-    } else {
-        beersData <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data
-        for (colName in headerstoAdd) {
-          beersData[colName] <- NA
-        }
-        beers <- rbind(beers, beersData %>% 
-                         select(id, name, description, abv, ibu, styleId) %>%
-                         as_tibble())
-      }
+    beers <- rbind(beers, unfilteredBeerData %>% 
+                     select(id, name, description, abv, ibu, styleId, categoryId, breweryId) %>%
+                     as_tibble())
   }
 }
-rm(beersData)
+rm(beersRequestData, unfilteredBeerData, headerstoAdd)
 beers <- read_rds(beersFile)
 write.csv(beers, beersFile)
 write_rds(beers, beersFile)
@@ -90,41 +152,6 @@ write_rds(beers, beersFile)
 
 
 ############### END #################
-
-
-
-# beers <- NULL
-# for (i in seq_along(beerStyles$id)) {
-#   beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(styleId = as.character(i))) %>%
-#     content(as = "text", encoding = "UTF-8")
-#   if (is.null(beers)) {
-#     beers <- fromJSON(beersRequestData)$data %>% 
-#       select(id, name, description, abv, ibu, styleId) %>%
-#       as_tibble()
-#   } else {
-#     # some beers don't have an ibu content and therefore don't have an ibu column
-#     # the same goes for description
-#     
-#     # the headers left to add if there is a column that is missing before we add them
-#     headerstoAdd <- setdiff(c("id", "name", "description", "abv", "ibu","styleId"), names(fromJSON(beersRequestData)$data))
-#     if (is_empty(headerstoAdd)) {
-#       beers <- rbind(beers, fromJSON(beersRequestData)$data %>%
-#                        select(id, name, description, abv, ibu, styleId) %>%
-#                        as_tibble())
-#     } else {
-#       beersData <- fromJSON(beersRequestData)$data
-#       for (colName in headerstoAdd) {
-#         beersData[colName] <- NA
-#       }
-#       beers <- rbind(beers, beersData %>% 
-#                        select(id, name, description, abv, ibu, styleId) %>%
-#                        as_tibble())
-#     }
-#   }
-# }
-# # takes about 3 minutes to get all the beers
-# rm(beersData)
-
 
 beerCategoriesRequestData <- BreweryDB_endpoint(breweryDBKey, "categories") %>%
   content(as = "text", encoding = "UTF-8")
@@ -179,7 +206,7 @@ locations <- read_rds(locationsFile)
 
 locations <- NULL
 # takes about 4 minutes
-for (i in 1:202) {
+for (i in 1:203) {
   locationsRequestData <- BreweryDB_endpoint(breweryDBKey, "locations", 
                                              options = list(p = as.character(i))) %>%
     content(as = "text", encoding = "UTF-8")
