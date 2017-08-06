@@ -3,6 +3,7 @@ library(jsonlite) # for working with JSON data
 # ran into bugs in the package so had to ditch it and do it by hand
 library(tidyverse) # to transform and clean data
 library(tidyr) # for help with turning JSONs into tidy frames
+library(splitstackshape) # for splitting columns into rows
 
 source("BreweryDBRWrapper.R")
 
@@ -25,7 +26,7 @@ beerStyles <- fromJSON(beerStylesRequestData, simplifyDataFrame = TRUE)$data %>%
   select(id, categoryId, name, shortName, description, ibuMin, ibuMax, abvMin, 
          abvMax, srmMin, srmMax, ogMin, fgMin, fgMax) %>%
   as_tibble()
-
+rm(beerStylesRequestData)
 # takes about 40 minutes to fill
 #  id"                        "name"                      "nameDisplay"               "description"              
 # "abv"                       "glasswareId"               "srmId"                     "styleId"                  
@@ -69,26 +70,29 @@ locationAttributes <- c("id", "name", "locality", "region", "postalCode", "latit
                         "locationType", "locationTypeDisplay", "countryIsoCode")
 beers <- read_rds(beersFile)
 beers <- NULL
-# takes about 40 minutes to fill
-#1:45
+# takes about an hour to fill
 
 # have to see if we run into any NAs in style
 # then we have to separate rows by breweries and add location ids to them
 
 # have to change possible NULLs to NAs
 
+# in order to make more dynamic, could keep ttrack of how many observations we've seen and 
+# do the math to see if we should update (not a priority)
+
 beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(1))) %>%
   content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
 beerNumPages <- beersRequestData$numberOfPages
 
 for (i in 1:beerNumPages) {
+  print(i)
   beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(i), withBreweries = "Y")) %>%
     content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
   unfilteredBeerData <- beersRequestData$data
 
   unfilteredBeerData$categoryId <- unfilteredBeerData$style$categoryId
   
-  unfilteredBeerData$breweryId <- lapply(unfilteredBeerData$breweries, FUN = function(x) { x$id })
+  unfilteredBeerData$breweryId <- lapply(unfilteredBeerData$breweries, FUN = function(x) { paste(x$id, collapse = " ") })
   
 
   headerstoAdd <- setdiff(c("id", "name", "description", "abv", "ibu","styleId"), 
@@ -109,7 +113,7 @@ for (i in 1:beerNumPages) {
   }
 }
 rm(beersRequestData, unfilteredBeerData, headerstoAdd)
-beers <- write_rds(beersFile)
+beers <- write_rds(beers, beersFile)
 beers <- read_rds(beersFile)
 write.csv(beers, beersFile)
 write_rds(beers, beersFile)
@@ -130,7 +134,7 @@ beerCategories <- fromJSON(beerCategoriesRequestData, simplifyDataFrame = TRUE)$
   select(id, name) %>%
   as_tibble()
 beerCategories <- head(beerCategories, -1) # we have a null row at the end
-
+rm(beerCategoriesRequestData)
 
 breweries <- read_rds(breweriesFile)
 
@@ -139,41 +143,47 @@ breweries <- NULL
 breweriesRequestData <- BreweryDB_endpoint(breweryDBKey, "breweries", options = list(p = as.character(1))) %>%
   content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
 breweryNumPages <- breweriesRequestData$numberOfPages
+#3:15
+# takes about 3 minutes
 
-# takes about 2 minutes
+breweriesRequestData <- BreweryDB_endpoint(breweryDBKey, "breweries", 
+                                           options = list(p = as.character(1), withLocations = "Y")) %>%
+  content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
+unfilteredBreweriesData <- breweriesRequestData$data
+
+unfilteredBreweriesData$locationId <- lapply(unfilteredBreweriesData$locations, FUN = function(x) { paste(x$id, collapse = " ") })
+
+
 for (i in 1:breweryNumPages) {
   breweriesRequestData <- BreweryDB_endpoint(breweryDBKey, "breweries", 
-                                             options = list(p = as.character(i))) %>%
-    content(as = "text", encoding = "UTF-8")
-  if (is.null(breweries)) {
-    breweries <- fromJSON(breweriesRequestData, simplifyDataFrame = TRUE)$data %>%
-      select(id, name, description) %>%
-      as_tibble()
-  } else {
-    # some breweries don't have a description and therefore don't have a description column
-
-    
-    # the headers left to add if there is a column that is missing before we add them
-    headerstoAdd <- setdiff(c("id", "name", "description"), 
-                            names(fromJSON(breweriesRequestData)$data))
-    if (is_empty(headerstoAdd)) {
-      breweries <- rbind(breweries, fromJSON(breweriesRequestData, 
-                                             simplifyDataFrame = TRUE)$data %>%
-                       select(id, name, description) %>%
-                       as_tibble())
-    } else {
-      breweriesData <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data
-      for (colName in headerstoAdd) {
-        # add missing column if it exists
-        breweriesData[colName] <- NA
-      }
-      breweries <- rbind(breweries, breweriesData %>% 
-                       select(id, name, description) %>%
-                       as_tibble())
+                                             options = list(p = as.character(i), withLocations = "Y")) %>%
+    content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
+  unfilteredBreweriesData <- breweriesRequestData$data
+  
+  unfilteredBreweriesData$locationId <- lapply(unfilteredBreweriesData$locations, FUN = function(x) { paste(x$id, collapse = " ") })
+  
+  # the headers left to add if there is a column that is missing before we add them
+  headerstoAdd <- setdiff(c("id", "name", "description"), 
+                          names(unfilteredBreweriesData))
+  
+  if (!is_empty(headerstoAdd)) {
+    for (colName in headerstoAdd) {
+      # add missing column if it exists
+      unfilteredBreweriesData[colName] <- NA
     }
   }
+  if (is.null(breweries)) {
+    breweries <- unfilteredBreweriesData %>%
+      select(id, name, description, locationId) %>%
+      as_tibble()
+  } else {
+    breweries <- rbind(breweries, unfilteredBreweriesData %>% 
+                         select(id, name, description, locationId) %>%
+                         as_tibble())
+  }
+  
 }
-rm(breweriesData)
+rm(breweriesRequestData, unfilteredBreweriesData, headerstoAdd)
 write_rds(breweries, breweriesFile)
 
 
@@ -190,73 +200,75 @@ locationNumPages <- locationsRequestData$numberOfPages
 for (i in 1:locationNumPages) {
   locationsRequestData <- BreweryDB_endpoint(breweryDBKey, "locations", 
                                              options = list(p = as.character(i))) %>%
-    content(as = "text", encoding = "UTF-8")
-  if (is.null(locations)) {
-    locations <- fromJSON(locationsRequestData, simplifyDataFrame = TRUE)$data %>%
-      select(id, name, streetAddress, locality, region, postalCode, latitude, longitude, 
-             locationTypeDisplay, isPrimary, countryIsoCode, breweryId) %>% 
-        as_tibble()
-  } else {
-    # some locations don't have certain attributes and therefore don't have that particular column
-    
-    
-    # the headers left to add if there is a column that is missing before we add them
-    headerstoAdd <- setdiff(c("id", "name", "streetAddress", "locality", "region", 
-                              "postalCode", "latitude", "longitude", "locationTypeDisplay", 
-                              "isPrimary", "countryIsoCode", "breweryId"), 
-                            names(fromJSON(locationsRequestData, simplifyDataFrame = TRUE)$data))
-    if (is_empty(headerstoAdd)) {
-      locations <- rbind(locations, fromJSON(locationsRequestData, simplifyDataFrame = TRUE)$data %>%
-                           select(id, name, streetAddress, locality, region, 
-                                  postalCode, latitude, longitude, locationTypeDisplay, 
-                                  isPrimary, countryIsoCode, breweryId) %>%
-                           as_tibble())
-    } else {
-      locationsData <- fromJSON(locationsRequestData, simplifyDataFrame = TRUE)$data
-      for (colName in headerstoAdd) {
-        # add missing column if it exists
-        locationsData[colName] <- NA
-      }
-      locations <- rbind(locations, locationsData %>% 
-                           select(id, name, streetAddress, locality, region, 
-                                  postalCode, latitude, longitude, locationTypeDisplay, 
-                                  isPrimary, countryIsoCode, breweryId) %>%
-                           as_tibble())
+    content(as = "text", encoding = "UTF-8") %>% fromJSON(simplifyDataFrame = TRUE)
+  unfilteredLocationsData <- locationsRequestData$data
+  
+  # the headers left to add if there is a column that is missing before we add them
+  headerstoAdd <- setdiff(c("id", "name", "streetAddress", "locality", "region", 
+                            "postalCode", "latitude", "longitude", "locationTypeDisplay", 
+                            "isPrimary", "countryIsoCode", "breweryId"), 
+                          names(unfilteredLocationsData))
+  
+  if (!is_empty(headerstoAdd)) {
+    for (colName in headerstoAdd) {
+      # add missing column if it exists
+      unfilteredLocationsData[colName] <- NA
     }
   }
+  if (is.null(locations)) {
+   locations <- unfilteredLocationsData %>%
+     select(id, name, streetAddress, locality, region, postalCode, latitude, longitude, 
+            locationTypeDisplay, isPrimary, countryIsoCode, breweryId) %>% 
+     as_tibble() 
+  } else {
+    locations <- rbind(locations, unfilteredLocationsData %>% 
+                         select(id, name, streetAddress, locality, region, 
+                                postalCode, latitude, longitude, locationTypeDisplay, 
+                                isPrimary, countryIsoCode, breweryId) %>%
+                         as_tibble())
+  }
 }
-rm(locationsData)
+rm(locationsRequestData, unfilteredLocationsData, headerstoAdd)
 write_rds(locations, locationsFile)
-# going to use the different styles to request the beers, and use
-# the styles to map the beers to categories
-# when requesting the beers, request with brewery information
-
-# going to need a category to style, style to beer for sure
-# want to make dynamic so we don't save all the data, 
-# however for the purpose of this class we are going to make sure
-# we save all the ids to beers and breweries, styles, categories, 
-# and locations
-
-# this is where data frames come into play, we could have one data frame 
-# with category, style, beer, and brewery all into one
-# with separate frames for category to style and style to beer
-# and beer to brewery (draw it out and see what it looks like)
 
 # then begin porting in data from RateBeer about the different kinds
-# of beers
+# of beers,
 
 # turns out getting ratings is much more difficult, and would require actual
 # HTML scraping which I don't want to get into now, so going to focus on 
 # the data that I do have from the breweryDB APIs
 
 
+# DONE: merge the categories and styles again (check for proper code)
+# DONE: expand the beers & breweries data frames on breweryId and locationId
+# DONE: merge the breweries and location information
+# TODO: turn all NULLs and NAs strings to actual NA type
+# after that, I believe we're done with the data dictionairy and we can do 
+# project 3 deliverable
+
 beerStyles <- arrange(beerStyles, categoryId)
 # adds category information to the diferent styles so we can search styles by category
-beerCategoriestoStyles <- merge(beerStyles, beerCategories %>% 
-                                  rename(categoryId = id, categoryName = name), 
-                                by = "categoryId") %>% rename(styleId = id, styleName = name)
+beerCategoriesStyles <- beerStyles %>% inner_join(beerCategories %>% rename(categoryId = id, categoryName = name), 
+                                                  by = "categoryId")
 
-# does not include NA's I believe
-beerStylestoBeers <- merge(beers %>% arrange(styleId) %>% rename(beerId = id, beerName = name, beerDescription = description), 
-                           beerCategoriestoStyles %>% arrange(styleId), by = "styleId") %>% arrange(styleId, beerName)
+breweries <- breweries %>% 
+  mutate(locationId = strsplit(as.character(locationId), " ")) %>% 
+  unnest(locationId)
+write_rds(breweries, breweriesFile)
 
+beers <- beers %>% 
+  mutate(breweryId = strsplit(as.character(breweryId), " ")) %>%
+  unnest(breweryId)
+write_rds(beers, beersFile)
+
+beersandStyles <- beers %>% inner_join(beerStyles %>% rename(styleId = id, 
+                    styleName = name, styleshortName = shortName, stylesDescription = description), 
+                     by = c("styleId", "categoryId"))
+breweriesandLocations <- breweries %>% rename(breweryId = id, breweryName = name, 
+                                        breweryDescription = description) %>% 
+  inner_join(locations %>% rename(locationId = id, locationName = name), 
+             by = c("locationId", "breweryId"))
+
+beersBreweriesLocations <- beers %>% rename(beerId = id, beerName = name, 
+                                beerDescription = description) %>% 
+  inner_join(breweriesandLocations, by = "breweryId")
