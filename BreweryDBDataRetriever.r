@@ -250,6 +250,20 @@ beerStyles <- arrange(beerStyles, categoryId)
 # adds category information to the diferent styles so we can search styles by category
 beerCategoriesStyles <- beerStyles %>% inner_join(beerCategories %>% rename(categoryId = id, categoryName = name), 
                                                   by = "categoryId")
+is.na(beers$name) <- beers$name == "NULL"
+
+for (attr in names(beers)) {
+  is.na(beers[attr]) <- beers[attr] == "NULL"
+}
+
+for (attr in names(breweries)) {
+  is.na(breweries[attr]) <- breweries[attr] == "NULL"
+}
+
+
+for (attr in names(locations)) {
+  is.na(locations[attr]) <- locations[attr] == "NULL"
+}
 
 breweries <- breweries %>% 
   mutate(locationId = strsplit(as.character(locationId), " ")) %>% 
