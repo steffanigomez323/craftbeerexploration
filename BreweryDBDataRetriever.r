@@ -1,7 +1,8 @@
 library(jsonlite) # for working with JSON data
 library(tidyjson) # also for working with JSON data
 library(tidyverse) # to transform and clean data
-
+library(readr) # for writing beers to a csv for use in pythons
+library(tidyr)
 
 source("BreweryDBRWrapper.R")
 
@@ -27,9 +28,24 @@ beerStyles <- fromJSON(beerStylesRequestData, simplifyDataFrame = TRUE)$data %>%
 
 
 beers <- read_rds(beersFile)
+write_csv(beers, "data/beers.csv")
 
 beers <- NULL
 # takes about 40 minutes to fill
+beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = 
+                                         list(p = as.character(1), withBreweries = "Y")) %>% 
+                    content(as = "text", encoding = "UTF-8")
+beers <- fromJSON(beersRequestData, simplifyDataFrame = TRUE)$data #%>% 
+  #select(id, name, description, abv, ibu, styleId) %>%
+  #as_tibble()
+length(beers$breweries[])
+beerdsmod <- beers  %>% unnest(breweries = strsplit(breweries, ","))
+
+
+
+
+
+
 for (i in 1:1317) {
   beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p = as.character(i))) %>%
     content(as = "text", encoding = "UTF-8")
@@ -61,6 +77,8 @@ for (i in 1:1317) {
   }
 }
 rm(beersData)
+beers <- read_rds(beersFile)
+write.csv(beers, beersFile)
 write_rds(beers, beersFile)
 
 
@@ -218,6 +236,10 @@ write_rds(locations, locationsFile)
 
 # then begin porting in data from RateBeer about the different kinds
 # of beers
+
+# turns out getting ratings is much more difficult, and would require actual
+# HTML scraping which I don't want to get into now, so going to focus on 
+# the data that I do have from the breweryDB APIs
 
 
 beerStyles <- arrange(beerStyles, categoryId)
