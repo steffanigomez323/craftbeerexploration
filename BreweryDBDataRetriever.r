@@ -1,9 +1,8 @@
 library(jsonlite) # for working with JSON data
-#library(tidyjson) # also for working with JSON data
+library(tidyjson) # also for working with JSON data
 # ran into bugs in the package so had to ditch it and do it by hand
 library(tidyverse) # to transform and clean data
 library(tidyr) # for help with turning JSONs into tidy frames
-library(splitstackshape) # for splitting columns into rows
 
 source("BreweryDBRWrapper.R")
 
@@ -24,7 +23,7 @@ beerStylesRequestData <- BreweryDB_endpoint(breweryDBKey, "styles") %>%
   content(as = "text", encoding = "UTF-8")
 beerStyles <- fromJSON(beerStylesRequestData, simplifyDataFrame = TRUE)$data %>%
   select(id, categoryId, name, shortName, description, ibuMin, ibuMax, abvMin, 
-         abvMax, srmMin, srmMax, ogMin, fgMin, fgMax) %>%
+         abvMax, srmMin, srmMax, ogMin, ogMax, fgMin, fgMax) %>%
   as_tibble()
 rm(beerStylesRequestData)
 # takes about 40 minutes to fill
@@ -247,10 +246,11 @@ write_rds(locations, locationsFile)
 # project 3 deliverable
 
 beerStyles <- arrange(beerStyles, categoryId)
+
 # adds category information to the diferent styles so we can search styles by category
 beerCategoriesStyles <- beerStyles %>% inner_join(beerCategories %>% rename(categoryId = id, categoryName = name), 
                                                   by = "categoryId")
-is.na(beers$name) <- beers$name == "NULL"
+#is.na(beers$name) <- beers$name == "NULL"
 
 for (attr in names(beers)) {
   is.na(beers[attr]) <- beers[attr] == "NULL"
@@ -269,6 +269,15 @@ breweries <- breweries %>%
   mutate(locationId = strsplit(as.character(locationId), " ")) %>% 
   unnest(locationId)
 write_rds(breweries, breweriesFile)
+
+
+beers$abv <- as.numeric(beers$abv)
+beers
+beers %>% ggplot(aes(x = abv)) + geom_histogram()
+beers %>% filter(abv > 50)
+
+# some serious cleaning is needed, have to dump outliers and values that don't make sense
+# we can use initial graphs to show the outliers
 
 beers <- beers %>% 
   mutate(breweryId = strsplit(as.character(breweryId), " ")) %>%
