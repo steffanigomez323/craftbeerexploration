@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
   <img src="https://www.ratebeer.com/images/logos/login-logo.png" id="ratebeerlogo">
 </div>
 
-# Analysis of Beers, Breweries, and Their Ratings
+# Analysis of Beers and Breweries Around the World
 
 ## Why You Should Care
 
@@ -64,11 +64,11 @@ To access BreweryDB data on breweries and their beers, as well as their location
 
 In the BreweryDB framework, beers have associated brewery, style, and category data. The BreweryDB website is continually updated with a staff constantly checking authenticity of beers and their breweries. However, some breweries are more visible than others, especially those with websites versus those based in foreign countries, and accordingly there can be missing information about some of the beers and breweries, and that will be discussed in detail later on. The beer styles and categories based off of the [Brewers Association Style Guidelines](https://www.brewersassociation.org/resources/brewers-association-beer-style-guidelines/).
 
-A beer can have several breweries that make it, and a brewery can be tied to several locations, such as a main brewery and its microbreweries (check if this is a thing). However, the relationship of location to physical coordinates is a one-to-one, with every unique location given a unique id, denoted ***locationId***. The beer to breweries relationship is one-to-many and the breweries to locations relationship is a one-to-many relationship as well. This is shown in the figure below:
+A beer can have several breweries that make it, and a brewery can be tied to several locations, such as a main brewery and its microbreweries (check if this is a thing). However, the relationship of location to physical coordinates is a one-to-one, with every unique location given a unique id, denoted *locationId*. The beer to breweries relationship is one-to-many and the breweries to locations relationship is a one-to-many relationship as well. This is shown in the figure below:
 
 [insert figure showing the one-to-many relationships by foreign keys, find some schema software uml diagrams?]
   
-BreweryDB has over 66K+ unique beers, with other 1300+ pages of JSON data about beers and their breweries. On my laptop it took over an hour to pull all the data about the beers. I have written code that updates all the dictionaries every time that the script is run, rewriting the dictionaries kept on disk if need be, All four separate data dictionaries are stored locally, simply because the time required to build it from scratch is too much to wait for every time I want to access the data. The merged copies are built from scratch because it can be done nearly instantaneously. The beer data dictionary has two foreign keys, ***breweryId*** from the breweries data dictionary and ***styleId*** from the beer styles dictionary. The beer data is merged with both the beer styles dictionary and the breweries data dictionary.
+BreweryDB has over 66K+ unique beers, with other 1300+ pages of JSON data about beers and their breweries. On my laptop it took over an hour to pull all the data about the beers. I have written code that updates all the dictionaries every time that the script is run, rewriting the dictionaries kept on disk if need be, All four separate data dictionaries are stored locally, simply because the time required to build it from scratch is too much to wait for every time I want to access the data. The merged copies are built from scratch because it can be done nearly instantaneously. The beer data dictionary has two __foreign__ keys, ***breweryId*** from the breweries data dictionary and ***styleId*** from the beer styles dictionary. The beer data is merged with both the beer styles dictionary and the breweries data dictionary.
 
 Getting beer data out of the BreweryDB API was much more complicated than previously anticipated. I had planned to use the *tidyjson* package, but found that there was a bug that had arisen recently that no one had a quick fix for, specifically when attempting to access nested JSON lists and a strange issue with the *dplyr* package. (add more info here if anything). The beer data straight out of the API is ordered in the following manner:
 
@@ -215,7 +215,7 @@ kable(beerstable)
 with a beer id and a brewery id acting as __primary__ keys of the beers data frame, meaning that the two together uniquely identify one observation in the data frame. 
 
 
-The brewery data dictionary was assembled in a similar manner to the beers data dictionary, with *locations* being the list nested in the list of data items in the JSON, and **locationId** being the list of ids associated with each brewery id. The final brewery data dictionary has the following variables, with a brewery id and a location id as primary keys of the data frame:
+The brewery data dictionary was assembled in a similar manner to the beers data dictionary, with *locations* being the list nested in the list of data items in the JSON, and *locationId* being the list of ids associated with each brewery id. The final brewery data dictionary has the following variables, with a brewery id and a location id as __primary__ keys of the data frame:
 
 ```{r, echo=FALSE}
 variables <- c("breweryId", "breweryName", "breweryDescription", "locationId")
@@ -225,17 +225,17 @@ library(knitr)
 kable(breweriestable)
 ```
   
-Locations are in a separate data dictionary of their own, partially because the BreweryDB API had the locations as their own dictionaries and because there's so much information associated with a location id. The variables in the final locations data dictionary are as follows:
+Locations are in a separate data dictionary of their own, partially because the BreweryDB API had the locations as their own dictionaries and because there's so much information associated with a location id. The variables in the final locations data dictionary are as follows, with *locationId* being the __primary__ key of the data frame:
 
 ```{r, echo=FALSE}
 variables <- c("locationId", "locationName", "streetAddress", "locality", "region", "postalCode", "latitude", "longitude", "locationTypeDisplay", "isPrimary", "countryIsoCode", "breweryId")
-descriptions <- c("the id of a particular location (geophysical location)", "the name of a location, usually street name", "the address and number of a location", "the city of the location", "the particular country region the location is in, for the US, southwest for example", "the postal code of the location", "the latitude coordinates of the location", "the longitude coordinates of the location", "the kind of location it is: restuarant vs microbrewery for example", "whether that particular location is the primary location for a particular brewery", "the three character country code of a location", "the brewery id of the brewery associated with this particular location")
+descriptions <- c("the id of a particular location (geophysical location)", "the name of a location, usually street name", "the address and number of a location", "the city of the location", "the ztate of the region", "the postal code of the location", "the latitude coordinates of the location", "the longitude coordinates of the location", "the kind of location it is: restuarant vs microbrewery for example", "whether that particular location is the primary location for a particular brewery", "the two character country code of a location", "the brewery id of the brewery associated with this particular location")
 locationstable <- data.frame(variables, descriptions)
 library(knitr)
 kable(locationstable)
 ```
   
-  Finally, I created a styles to categories data dictionary of all the different styles and categories and their mappings, associating styles and style information like the range of alcohol per beer volume content fo that particular style. The variables in this dictionary are:
+  Finally, I created a styles to categories data dictionary of all the different styles and categories and their mappings, associating styles and style information like the range of alcohol per beer volume content fo that particular style, with *styleId* being the __primary__ key for the data frame. The variables in this dictionary are:
 
 ```{r, echo=FALSE}
 variables <- c("styleId", "categoryId", "name", "shortName", "description", "ibuMin", "ibuMax", "abvMin", "abvMax", "srmMin", "srmMax", "ogMin", "ogMax", "fgMin", "fgMax", "categoryName")
@@ -244,7 +244,9 @@ stylestable <- data.frame(variables, descriptions)
 library(knitr)
 kable(stylestable)
 ```
-  
+
+Unfortunately, the Python wrapper designed to get RateBeer information by scraping the website did not work as planned. It seems that in the recent weeks, RateBeer has changed the encoding of their website, rendering the wrapper unusable as the encoding of the script and the website are uncompatible, and searching by beer or sending any kind of string as a GET request is unrecognizable by the website and the data returned is unreliable. So this project will focus on exploring the BreweryDB data and building some cool interactive visualizations from it. [CHECK THIS OUT]
+
 Most of us know what abv and ibu is, since these statistics are often displayed on the beer iteself. But what is SRM, and original and final gravity and what does that have to do with beer? 
 
 # SRM & Original and Final Gravity
