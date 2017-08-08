@@ -254,11 +254,11 @@ Most of us know what abv and ibu is, since these statistics are often displayed 
 SRM is short for the [Standard Reference Method](http://brewwiki.com/index.php/Standard_Reference_Method), the color system used by breweries for finished beer and malts. 
 
 ```{r kable, echo=FALSE}
-ranges <- c("1.0 - 3.0", "3.0 - 4.5", "4.5 - 7.5", "7.5 - 9.0", "9.0 - 11.0", "11.0 - 14.0", "14.0 - 19.0", "19.0 - 20.0")
-colors <- c("Pale yellow", "Medium yellow", "Gold", "Amber", "Copper", "Red/Brown", "Brown", "Black")
-srmtable <- data.frame(ranges, colors)
+ranges <- c("1.0 - 2.0", "2.0 - 3.0", "3.0 - 4.0", "4.0 - 6.0", "6.0 - 8.0", "8.0 - 10.0", "10.0 - 13.0", "13.0 - 17.0", "17.0 - 20.0", "20.0 - 24.0", "24.0 - 29.0", "29.0 -35.0", "35.0 - 40.0", "40.0+")
+examples <- c("Pale lager", "Pilsener", "Blonde Ale", "Weissbeer", "India Pale Ale", "Saison", "English bitter", "Double IPA", "Amber Ale", "Brown Ale", "Porter", "Stout", "Foreign Stout", "Imperial Stout")
+srmtable <- data.frame(ranges, examples)
 library(knitr)
-kable(srmtable, digits=2)
+kable(srmtable, digits=3)
 ```
 
 Gravity, in the context of brewing alcohol, is the density of the [wort](https://en.wikipedia.org/wiki/Wort) or [must](https://en.wikipedia.org/wiki/Must) compared to water. Original gravity refers to the gravity of the liquid before fermentation, and final gravity is its gravity after fermentation. 
@@ -281,4 +281,53 @@ Beer is mainly made out of four ingredients: water, yeast, a grain, such as barl
 ## DATA CLEANING
   
   WHAT ABOUT SRM??
-  The first thing
+ 
+Now that we have all of our data, we might want to take a look at the distribution of the most distinguishable beer characteristics, abv (alcohol per beer volume, expressed as a percentagage out of 100) and ibu (international bitterness unit value, which is a measure of how bitter the beer is).
+
+```{r, echo=FALSE}
+beersFile <- "data/beers.rds"
+beers <- read_rds(beersFile)
+summary(beers$abv)
+```
+
+THe summary statistics of the abv of al the beers reveal that the maximum abv is 308. Since a percent
+is out of 100, everything above 100 doesn't make sense and we can remove all the beers whose abv is above 100 since the credibility of that beer is now questionable. Thankfully, there is only 1 beer whose abv is above 100, and we dispose of that observation. Now we visualize the distribution to get a better idea of the characteristics of the abv.
+
+```{r, echo=FALSE, warning=FALSE}
+beers <- beers %>% filter(id != "EHPIi4")
+beers %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1, colour = "BLACK")
+```
+
+It seems that the majority of beer abv is between 0 and 20, so let's visualize observations within that range.
+
+```{r, echo=FALSE}
+beers %>% filter(abv <= 20) %>% ggplot(aes(abv)) + geom_histogram(colour = "BLACK", binwidth = 1)
+```
+
+
+<!--# if we wanted to see the distribution of location types among the dataset
+beersBreweriesLocations %>% ggplot(aes(x = locationTypeDisplay)) + geom_bar()
+#beersBreweriesLocations %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1) + facet_wrap(~ countryIsoCode)
+
+# the distribution could be considered normal, with a skewness of 3.428445
+
+#skewness(beers$abv, na.rm = TRUE)-->
+
+Let's take a look at the IBU distributions of all the beers.
+```{r}
+summary(beers$ibu)
+```
+As seen in this [chart](https://www.brewersfriend.com/2009/01/24/beer-styles-ibu-chart-graph-bitterness-range/), ibu doesn't normally go above 120, with the units being parts per million, and this [article](https://beerconnoisseur.com/articles/whats-meaning-ibu) claiming that the human tongue can't distinguish past 110 IBUs. 
+
+```{r, echo=TRUE}
+beersHighIBUs <- beers %>% filter(ibu > 120) %>% nrow
+```
+
+There are `r beersHighIBUs` beers above 120 IBUs, and googling of the first few beers reveals that these are authentic beers, so no observations will be removed for wrong IBU range, but these observations will be left out of exploratory data analysis visualizations to avoid skewing the scale of data. 
+
+```{r, echo=FALSE}
+beers %>% filter(!is.na(srmId), ibu <= 120) %>% 
+  ggplot(aes(srmId)) + geom_histogram(colour = "BLACK", binwidth = 2)
+```
+
+It seems that beers are either usually very light colored or very dark colored, so either a pale lager or a strong stout.

@@ -112,7 +112,7 @@ for (i in 1:beerNumPages) {
   }
 }
 rm(beersRequestData, unfilteredBeerData, headerstoAdd)
-beers <- write_rds(beers, beersFile)
+write_rds(beers, beersFile)
 beers <- read_rds(beersFile)
 write.csv(beers, beersFile)
 write_rds(beers, beersFile)
@@ -265,6 +265,9 @@ for (attr in names(locations)) {
   is.na(locations[attr]) <- locations[attr] == "NULL"
 }
 
+beers$abv <- as.numeric(beers$abv)
+beers$ibu <- as.numeric(beers$ibu)
+
 breweries <- breweries %>% 
   mutate(locationId = strsplit(as.character(locationId), " ")) %>% 
   unnest(locationId)
@@ -296,8 +299,6 @@ beersBreweriesLocations <- beers %>% rename(beerId = id, beerName = name,
 beers <- read_rds(beersFile)
 
 # SERIOUS CLEANING AND FILTERING IS NEEDED
-beers$abv <- as.numeric(beers$abv)
-beers$ibu <- as.numeric(beers$ibu)
 
 # now that we have all of our data, we might want to take a look at the distribution of the most distinguishable
 # beer characteristics, abv (alcohol per beer volume, expressed as a percentagage out of 100) and ibu (international
@@ -344,12 +345,12 @@ summary(beers$ibu) # have to look up ibu to see what is the possible range
 
 beers %>% ggplot(aes(x = ibu)) + geom_histogram(colour = "black", binwidth = 10)
 
-beers %>% filter(ibu > 110) %>% nrow
+beers %>% filter(ibu > 120) %>% nrow
 
-# only 249 observations above 110, ibu doesn't normally go above 120 according to research, the tongue can distinguish
+# only 153 observations above 110, ibu doesn't normally go above 120 according to research, the tongue can distinguish
 # up to 110 ibus
 
-beers %>% filter(ibu <= 110) %>% ggplot(aes(ibu)) + geom_histogram(colour = "black", binwidth = 5)
+beers %>% filter(ibu <= 120) %>% ggplot(aes(ibu)) + geom_histogram(colour = "black", binwidth = 5)
 
 # definitely right skewed
 
@@ -378,5 +379,9 @@ beersBreweriesLocations %>% filter(countryIsoCode == "GB") %>%
 # the most locations? are they different lists? why might this be? 
 
 # visualizations of style and category information would be very useful 
+
+# visualizing srmId
+summary(beers$srmId)
+beers %>% ggplot(aes(srmId)) + geom_histogram(color = "BLACK")
 
 ####################### END #############################
