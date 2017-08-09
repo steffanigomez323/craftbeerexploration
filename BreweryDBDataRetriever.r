@@ -383,11 +383,6 @@ locations <- changeLocationState(locations, "GM3x67", "North Carolina")
 # the ranges of the latitude and longitude seem alright, import dates so we can look at things by year? 
 
 
-
-topstateswithBreweries <- beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>% 
-  arrange(desc(n))
-
-
 # we can verify country isocodes, locationTypeDisplay, and check the ranges of latitude and longitude
 
 summary(locations$latitude)
@@ -411,10 +406,7 @@ countryCodes <- locations %>% count(countryIsoCode) %>% arrange(desc(n))
 
 # check for duplicates in all the data dictionaries??????
 
-
-
-
-# find the top 5 styles and their categories
+# FUNCTIONAL PROGRAMMING
 
 # abv and ibu
 
@@ -450,6 +442,11 @@ beers %>% filter(ibu <= 120) %>% ggplot(aes(ibu)) + geom_histogram(colour = "bla
 # states, and countries in regards to number of different breweries and then number of different beers? are they 
 # different? what does that say about beers and breweries? which breweries have the most beers? which breweries have
 # the most locations? are they different lists? why might this be? 
+
+# top 5 states with the most breweries in the US
+
+beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>% 
+  arrange(desc(n)) %>% head(5)
 
 # visualizations of style and category information would be very useful 
 
