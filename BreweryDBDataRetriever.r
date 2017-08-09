@@ -114,8 +114,6 @@ for (i in 1:beerNumPages) {
 rm(beersRequestData, unfilteredBeerData, headerstoAdd)
 write_rds(beers, beersFile)
 beers <- read_rds(beersFile)
-write.csv(beers, beersFile)
-write_rds(beers, beersFile)
 
 
 ########## GETTING RATINGS ##########
@@ -205,7 +203,7 @@ for (i in 1:locationNumPages) {
   # the headers left to add if there is a column that is missing before we add them
   headerstoAdd <- setdiff(c("id", "name", "streetAddress", "locality", "region", 
                             "postalCode", "latitude", "longitude", "locationTypeDisplay", 
-                            "isPrimary", "countryIsoCode", "breweryId"), 
+                            "isPrimary", "countryIsoCode", "inPlanning", "isClosed", "breweryId"), 
                           names(unfilteredLocationsData))
   
   if (!is_empty(headerstoAdd)) {
@@ -253,7 +251,7 @@ beerCategoriesStyles <- beerStyles %>% inner_join(beerCategories %>% rename(cate
 #is.na(beers$name) <- beers$name == "NULL"
 
 for (attr in names(beers)) {
-  as.na(beers[attr]) <- beers[attr] == "NULL"
+  is.na(beers[attr]) <- beers[attr] == "NULL"
 }
 
 for (attr in names(breweries)) {
@@ -300,6 +298,8 @@ beers <- read_rds(beersFile)
 
 # SERIOUS CLEANING AND FILTERING IS NEEDED
 
+# The first thing that we have to do is clean our data, now that we have all of our data. This is done below.
+
 # now that we have all of our data, we might want to take a look at the distribution of the most distinguishable
 # beer characteristics, abv (alcohol per beer volume, expressed as a percentagage out of 100) and ibu (international
 # bitterness unit value, which is a measure of how bitter the beer is)
@@ -316,17 +316,6 @@ beers %>% filter(abv > 100)
 # there is only 1 beer whose abv is above 100, and we dispose of that observation
 beers <- beers %>% filter(id != "EHPIi4")
 
-# now we visualize the distribution to get a better picture
-summary(beers$abv)
-beers %>% ggplot(aes(abv)) + geom_histogram(binwidth=1)
-
-# if we wanted to see the distribution of location types among the dataset
-beersBreweriesLocations %>% ggplot(aes(x = locationTypeDisplay)) + geom_bar()
-#beersBreweriesLocations %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1) + facet_wrap(~ countryIsoCode)
-
-# it seems that the majority of beer abv is between 0 and 20, so let's visualize that
-beers %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1) + xlim(0, 20)
-
 # the distribution could be considered normal, with a skewness of 3.428445
 
 #skewness(beers$abv, na.rm = TRUE)
@@ -335,7 +324,7 @@ beers %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1) + xlim(0, 20)
 
 summary(beers$ibu)
 
-beersBreweriesLocations %>% filter(ibu > 500) %>% select(breweryName, beerName, ibu, countryIsoCode)
+beers %>% filter(ibu > 120) %>% select(id, ibu)
 
 # there are a few outliers but after googling to make sure of their authenticity, no observations are removed
 # from the beers for wrong ibu range
@@ -350,11 +339,80 @@ beers %>% filter(ibu > 120) %>% nrow
 # only 153 observations above 110, ibu doesn't normally go above 120 according to research, the tongue can distinguish
 # up to 110 ibus
 
-beers %>% filter(ibu <= 120) %>% ggplot(aes(ibu)) + geom_histogram(colour = "black", binwidth = 5)
 
-# definitely right skewed
+# since there isn't anything to clean in breweries; we can't tell what is a good description and what is a 
+# bad description, and when the data dictionaries are merged with each other on the foreign keys, beers that 
+# don't have a brewery are not included, breweries with no locations are not included, and locations without an 
+# associated brewery isn't included, since when we merge, we are using an inner_join. 
 
-beers %>% ggplot(aes(styleId)) + geom_bar()
+# so we move on to locations. Since most of the variables in location are strings, we must check the address and 
+# latitudes and longitudes to make sure they make sense in the context of the observation. 
+
+
+numStates <- locations %>% filter(countryIsoCode == "US") %>% count(region) %>% nrow
+
+# there are 99 states in the United States according to the dataset, which is erroneous. We expect to see 51 
+# "different" states, the 50 states and then NA for observations without a state 
+
+locations %>% filter(countryIsoCode == "US" & is.na(region)) %>% nrow
+
+# there are 16 observations without a state
+
+locations %>% filter(countryIsoCode == "US" & is.na(region))
+
+changeLocationState <- function(locationdataFrame, locationId, regionValue) {
+  for (i in 1:nrow(locationdataFrame[,1])) {
+    if (locationdataFrame$id[i] == locationId) {
+      locationdataFrame$region[i] <- regionValue
+      return(locationdataFrame)
+    }
+  }
+}
+
+
+locations <- changeLocationState(locations, "2sfE3h", "Texas")
+locations <- changeLocationState(locations, "nLdHCU", "California")
+locations <- changeLocationState(locations, "GM3x67", "North Carolina")
+
+# remember that washington, dc is not a state
+# difficult to see whether addresses are valid or what postal codes are valid, location data cleaning will be a lot
+# more obvious once it is visualized
+
+# have to turn state abbreviations into full state names
+
+# the ranges of the latitude and longitude seem alright, import dates so we can look at things by year? 
+
+
+
+topstateswithBreweries <- beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>% 
+  arrange(desc(n))
+
+
+# we can verify country isocodes, locationTypeDisplay, and check the ranges of latitude and longitude
+
+summary(locations$latitude)
+summary(locations$longitude)
+
+# looking at the different types of locationTypeDisplay 
+locations %>% count(locationTypeDisplay) %>% arrange(desc(n))
+
+# all seem good, going to take a look at country isocodes
+
+countryCodes <- locations %>% count(countryIsoCode) %>% arrange(desc(n))
+
+# all the countryIsoCodes seem alright, should compare to official country codes
+
+
+# this shows us all the state issues we have to accout for
+
+# we can go through these 16 observations by hand and add them since it's only 16
+
+
+
+# check for duplicates in all the data dictionaries??????
+
+
+
 
 # find the top 5 styles and their categories
 
@@ -363,6 +421,21 @@ beers %>% ggplot(aes(styleId)) + geom_bar()
 beersBreweriesLocations %>% ggplot(aes(abv, y = ibu)) + geom_point()
 beersBreweriesLocations %>% filter(countryIsoCode == "GB") %>%
   ggplot(aes(abv, ibu)) + geom_jitter()
+
+# now we visualize the distribution to get a better picture
+summary(beers$abv)
+beers %>% ggplot(aes(abv)) + geom_histogram(binwidth=1)
+
+# if we wanted to see the distribution of location types among the dataset
+beersBreweriesLocations %>% ggplot(aes(x = locationTypeDisplay)) + geom_bar()
+#beersBreweriesLocations %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1) + facet_wrap(~ countryIsoCode)
+
+# it seems that the majority of beer abv is between 0 and 20, so let's visualize that
+beers %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1) + xlim(0, 20)
+
+beers %>% filter(ibu <= 120) %>% ggplot(aes(ibu)) + geom_histogram(colour = "black", binwidth = 5)
+
+# definitely right skewed
 
 # displaying the range of abv and ibu for each beer style would be great
 
@@ -383,5 +456,7 @@ beersBreweriesLocations %>% filter(countryIsoCode == "GB") %>%
 # visualizing srmId
 summary(beers$srmId)
 beers %>% ggplot(aes(srmId)) + geom_histogram(color = "BLACK")
+
+
 
 ####################### END #############################

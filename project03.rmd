@@ -314,20 +314,28 @@ beersBreweriesLocations %>% ggplot(aes(x = locationTypeDisplay)) + geom_bar()
 #skewness(beers$abv, na.rm = TRUE)-->
 
 Let's take a look at the IBU distributions of all the beers.
-```{r}
+```{r, echo=FALSE}
 summary(beers$ibu)
 ```
 As seen in this [chart](https://www.brewersfriend.com/2009/01/24/beer-styles-ibu-chart-graph-bitterness-range/), ibu doesn't normally go above 120, with the units being parts per million, and this [article](https://beerconnoisseur.com/articles/whats-meaning-ibu) claiming that the human tongue can't distinguish past 110 IBUs. 
 
-```{r, echo=TRUE}
+```{r, echo=FALSE}
 beersHighIBUs <- beers %>% filter(ibu > 120) %>% nrow
 ```
 
 There are `r beersHighIBUs` beers above 120 IBUs, and googling of the first few beers reveals that these are authentic beers, so no observations will be removed for wrong IBU range, but these observations will be left out of exploratory data analysis visualizations to avoid skewing the scale of data. 
 
 ```{r, echo=FALSE}
-beers %>% filter(!is.na(srmId), ibu <= 120) %>% 
+beers %>% filter(ibu <= 120) %>% select(ibu) %>% summary()
+
+beers %>% filter(ibu <= 120) %>%
+  ggplot(aes(ibu)) + geom_histogram(colour = "BLACK", binwidth = 5)
+
+beers %>% filter(!is.na(srmId) & ibu <= 120) %>% 
   ggplot(aes(srmId)) + geom_histogram(colour = "BLACK", binwidth = 2)
+
+beers %>% filter(abv <= 20 & ibu <= 120) %>% 
+  ggplot(aes(abv)) + geom_histogram(colour = "BLACK", binwidth = 1)
 ```
 
-It seems that beers are either usually very light colored or very dark colored, so either a pale lager or a strong stout.
+It seems that beers are either usually fairly light colored or very dark colored, so either a pale lager or a strong stout.
