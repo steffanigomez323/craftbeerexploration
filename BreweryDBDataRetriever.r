@@ -292,6 +292,9 @@ beersBreweriesLocations <- beers %>% rename(beerId = id, beerName = name,
                                 beerDescription = description) %>% 
   inner_join(breweriesandLocations, by = "breweryId")
 
+write_rds(beersBreweriesLocations, "data/maindictionary.rds")
+write_rds(beerCategoriesStyles, "data/categoriesStyles.rds")
+
 ################# DATA CLEANING #########################
 
 beers <- read_rds(beersFile)
@@ -446,7 +449,17 @@ beers %>% filter(ibu <= 120) %>% ggplot(aes(ibu)) + geom_histogram(colour = "bla
 # top 5 states with the most breweries in the US
 
 beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>% 
-  arrange(desc(n)) %>% head(5)
+  arrange(desc(n)) %>% rename(frequency = n) %>% head(5)
+
+# finding the top 5 styles in the US
+beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(styleId) %>% 
+  arrange(desc(n)) %>% rename(frequency = n) %>% head(5) %>% inner_join(beerCategoriesStyles %>% 
+                                                                          rename(styleId = id)) %>%
+  select(name, frequency) %>% write_rds("data/top5.rds")
+
+# finding the top 10 cities with the most breweries in the US
+beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(locality) %>% 
+  arrange(desc(n)) %>% rename(frequency = n) %>% head(10)
 
 # visualizations of style and category information would be very useful 
 

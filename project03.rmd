@@ -17,60 +17,66 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Analysis of Beers and Breweries Around the World
 
-## Why You Should Care
-
-I wanted to do a variety of things for the final project and push myself to use the most I can out of R and use my computer science skills.
-
-North Carolina is arguably the state with the most breweries in the country. Beer is one of the three kinds of liquor you can buy (wine, liquor, beer) and the advertising for it is everywhere. Down a highway or on television, there is almost certainly some kind of advertising for some sort of beer, perhaps one you've never heard of. And if you've ever seen the SuperBowl, you've definitely seen the [halftime commercials for beer](https://www.youtube.com/watch?v=aYeXldMEpV8). If that isn't enough to convince anyone, Anheuser-Busch InBev SA/NV is the largest brewery in the world and is one of largest and most profitable fast-moving consumer goods companies in the world, with \$45.5 billion in revenue last year and a projected revenue of $55 billion this year. Craft beer is growing in popularity, so it's safe to say quite a few people care about beer and the money it brings in. 
-
-## Project Summary
-
-For this final project I want to focus on beer and breweries in the United States. There will be three large aspects to this project: data wrangling, data visualization, and prediction, the Big Three of data science, with prediction being the side of machine learning I want to focus on, rather than classification. I want to explore the spread of breweries in the United States and I'd like to see if there is a viable prediction algorithm for beers, given a beer/brewery and its characteristics, can we predict how well-liked the beer will be? This has huge implications for owners of breweries, if ratings can be predicted, then one can aim to create a beer that will be well liked, and if certain locations are more open to certain kinds of beer, then marketing for that specific kind of beer should be increased in those areas. This is just an example of what the possible results of this project can mean in the real world. 
-
-## Datasets
-I will be using data from two websites, [BreweryDB](http://www.brewerydb.com/) and [RateBeer](https://www.ratebeer.com/). BreweryDB will be my main source of data, with RateBeer providing ratings of the beers based on community reviews. These two websites are well known and are often used in "beer analytics" and have reputable communities behind them, with revisions being made every day. BreweryDB maintains a staff that checks the authenticity of beers and breweries and the statistics of them, and RateBeer will provide the ratings and the number of reviewers so we can determine whether to trust an average rating when there has only been 2 reviewers for example. Getting data out of these websites is where the data wrangling portion of this project is. 
-
-BreweryDB provides just about all the information you could want about a brewery and the different beers it produces. The information I will be using from BreweryDB is: 
-
-  - beer name
-  - beer category (categories based off of the [Brewers Association Style Guidelines](https://www.brewersassociation.org/resources/brewers-association-beer-style-guidelines/))
-  - beer style (the styles of beers within each category)
-  - brewery location
-  - brewery name
-  - brewery type
-  - social media accounts of the breweries
-  
-RateBeer will only be used to associate ratings, which it provides, to the beers found in BreweryDB. 
-
-I will be using the [BreweryDB API](http://www.brewerydb.com/developers/docs) to access its database and I will be accessing it from my R program. RateBeer is much trickier since its API has been down for a number of years now. However, thanks to GitHub and open-sourcing, there is a kind soul who created a [Python wrapper](https://github.com/alilja/ratebeer) to scrape data off of RateBeer and return it in the same manner that an API would. So I will write a script in Python to get the ratings data and call that script from R. I foresee that the main issue will be differences in beer names between the two website and I'm sure that some beers will exist in one dataset but won't exist in the other, but that's what data wrangling is all about!
-
-## Methodology
-There are three main results I hope to deliver by the end of this project:
+## Previous Goals
+There were my previous goals that I hoped to deliver by the end of this project:
 
   1. Create an interactive geovisualization of the location of different breweries in the United States and the beers that they offer, with filters for regions, beer category, beer style, age of the breweries, and kinds of breweries. 
   2. Create an interactive geovisualization for the location of different breweries and the ratings of the beers and be able to filter by location and ratings. The goal of these visualizations is to explore the data and see if there are any patterns that we can use to our advantage. 
   3. Based on what information the visualizations offer, create a prediction algorithm for beer ratings. Given location, beer category, beer style, alcohol content (ABV, IBU), presence of a social media account, and brewery type, can I create an accurate recommendation algorithm? For this, I will use regression. 
   
-## Schedule
-Because this project is very involved, I am planning on starting the project this week. My plan of action is as follows:
+## Current Goals
+I found that the [Python wrapper](https://github.com/alilja/ratebeer) I wanted to use before was rendered useless from [RateBeer](https://www.ratebeer.com/)'s recent updates to the site. In the past few weeks, RateBeer has changed the infrastructure of their website and changed much of how the data on their website is encoded. Since the wrapper has not been updated recently to take into account the changes of RateBeer's website, I could not use the wrapper without taking a serious digression from this project and fix the Python script. So I have changed the goals of this project.
 
-  - Week 1 7/26 - 8/02: Get data out of the BreweryDB API and the RateBeer Python wrapper
-  - Week 2 8/02 - 8/09: Fix discrepancies between the two datasets and begin to work on the visualizations
-  - Week 3 8/09-8/16: Finish up the visualizations and begin working on the regression formula
-  - Week 4 8/16-8/23: Finish the regression algorithm and add finishing touches to the project
+  1. Create an interactive geovisualization of the location breweries across every country, with the ability to select which country we'd like to look at. 
+  2. Provide layers to this geovisualization from the going from country to state to city, "zooming" on a factor up to three, such that a user can see where a brewery or specific beer is located.
+  3. Allow the user to filter visualization on a variety of characteristics, such as style, abv, and ibu.
   
-## DATA WRANGLING 
+The focus of my project has shifted from using machine machine learning to gauge beer likability to exploring the trove of data provided by [BreweryDB](http://www.brewerydb.com/), emphasizing user interaction and data visualization. My vision of this project is to take a user through the story told by the data, what are the top styles made in the US, what characteristics do those styles have, where are those located throughout the country, a state, or a city. That is only an example of what my visualization can do, but I hope to make exploration of the data provided by BreweryDB much more accessible via a user interface through interactive visualizations, something similar to a [visual essay](https://pudding.cool/2017/04/beer/) done by Russell Goldenberg from [The Pudding](https://pudding.cool/) (maybe as not as cool or as polished, but a publication like that is the dream standard for this project). 
+
+But first, I want to provide some background information into beers and the process of brewing beer. 
+  
+## How Beer is Made
+<div id="howbeer" style="text-align: center;">
+  <img src="http://blog.beeriety.com/wp-content/uploads/beerprocess0b3.png" id="howbeerismade"><br>
+  <a href="http://blog.beeriety.com/wp-content/uploads/beerprocess0b3.png">Image Source</a>
+</div>
+
+Beer is mainly made out of four ingredients: water, yeast, a grain, such as barley, and hops. 
+
+  1. **Malting**: The grain is prepared for boiling by being steeped in water and allowed to partially germinate, softening the kernel. This isolates the natural enzymes that will later on break down the starch into sugar. This process is stopped by heating, drying out and cracking the barley, turning it into malted barley.
+  2. **Mashing**: The malted barley is soaked in hot water, allowing the natural enzymes in the grain to turn starch into sugar for the yeast to consume later during fermentation.
+  3. **Sparging**: After the starch has been turned to sugar, the liquid becomes full of sugar and is separated from the grains in a process called lautering and the liquid that is leftover is now called *wort*.
+  4. **Boiling and Cooling**: The wort is placed in a boil kettle and is boiled to kill any micro-organisms left in the liquid and is also when hops and spices are added over the period of about an hour. Hops provide bitterness in beer, balancing out the sugar. After, the wort is then quickly cooled down, strained, and filtered so that yeast can be added to it without killing it from the heat of the liquid. 
+  5. **Fermentation**: The waiting period for the yeast to consume the sugar and turn it into alcohol, which is typically a few weeks. 
+  6. **Carbonation or Aging**: After the fermentation period, the beer is still uncarbonated. It can either be artificially carbonated or it can be "bottle conditioned" and allowed to age with the CO2 produced by the yeast. 
+  
+### SRM & Original and Final Gravity
+
+Most of us know what abv and ibu is, since these statistics are often displayed on the beer itself. But what is SRM, and original and final gravity and what does that have to do with beer?
+
+SRM is short for the [Standard Reference Method](https://en.wikipedia.org/wiki/Standard_Reference_Method), the color system used by breweries for finished beer and malts. 
+
+```{r kable, echo=FALSE}
+ranges <- c("1.0 - 2.0", "2.0 - 3.0", "3.0 - 4.0", "4.0 - 6.0", "6.0 - 8.0", "8.0 - 10.0", "10.0 - 13.0", "13.0 - 17.0", "17.0 - 20.0", "20.0 - 24.0", "24.0 - 29.0", "29.0 -35.0", "35.0 - 40.0", "40.0+")
+examples <- c("Pale lager", "Pilsener", "Blonde Ale", "Weissbeer", "India Pale Ale", "Saison", "English bitter", "Double IPA", "Amber Ale", "Brown Ale", "Porter", "Stout", "Foreign Stout", "Imperial Stout")
+srmtable <- data.frame(ranges, examples)
+library(knitr)
+kable(srmtable, digits=3, caption = "SRM IDs and Examples of Beer Styles")
+```
+
+Gravity, in the context of brewing alcohol, is the density of the [wort](https://en.wikipedia.org/wiki/Wort) or [must](https://en.wikipedia.org/wiki/Must) compared to water. Original gravity refers to the gravity of the liquid before fermentation, and final gravity is its gravity after fermentation. 
+  
+  
+## Data Importing
 To access BreweryDB data on breweries and their beers, as well as their locations, I used the BreweryDB API. This API used an API key to access the information in the API, and I built 4 main data dictionaries about 66K+ beers and the breweries that make them. 
 
 In the BreweryDB framework, beers have associated brewery, style, and category data. The BreweryDB website is continually updated with a staff constantly checking authenticity of beers and their breweries. However, some breweries are more visible than others, especially those with websites versus those based in foreign countries, and accordingly there can be missing information about some of the beers and breweries, and that will be discussed in detail later on. The beer styles and categories based off of the [Brewers Association Style Guidelines](https://www.brewersassociation.org/resources/brewers-association-beer-style-guidelines/).
 
-A beer can have several breweries that make it, and a brewery can be tied to several locations, such as a main brewery and its microbreweries (check if this is a thing). However, the relationship of location to physical coordinates is a one-to-one, with every unique location given a unique id, denoted *locationId*. The beer to breweries relationship is one-to-many and the breweries to locations relationship is a one-to-many relationship as well. This is shown in the figure below:
-
-[insert figure showing the one-to-many relationships by foreign keys, find some schema software uml diagrams?]
+A beer can have several breweries that make it, and a brewery can be tied to several locations, such as a main brewery and its microbreweries (check if this is a thing). However, the relationship of location to physical coordinates is a one-to-one, with every unique location given a unique id, denoted *locationId*. The beer to breweries relationship is one-to-many and the breweries to locations relationship is a one-to-many relationship as well.
   
 BreweryDB has over 66K+ unique beers, with other 1300+ pages of JSON data about beers and their breweries. On my laptop it took over an hour to pull all the data about the beers. I have written code that updates all the dictionaries every time that the script is run, rewriting the dictionaries kept on disk if need be, All four separate data dictionaries are stored locally, simply because the time required to build it from scratch is too much to wait for every time I want to access the data. The merged copies are built from scratch because it can be done nearly instantaneously. The beer data dictionary has two __foreign__ keys, ***breweryId*** from the breweries data dictionary and ***styleId*** from the beer styles dictionary. The beer data is merged with both the beer styles dictionary and the breweries data dictionary.
 
-Getting beer data out of the BreweryDB API was much more complicated than previously anticipated. I had planned to use the *tidyjson* package, but found that there was a bug that had arisen recently that no one had a quick fix for, specifically when attempting to access nested JSON lists and a strange issue with the *dplyr* package. (add more info here if anything). The beer data straight out of the API is ordered in the following manner:
+Getting beer data out of the BreweryDB API was much more complicated than previously anticipated. I had planned to use the *tidyjson* package, but found that there was a bug that had arisen recently that no one had a quick fix for, specifically when attempting to access nested JSON lists and a strange issue with the *dplyr* package. The beer data straight out of the API is ordered in the following manner:
 
 ```{r, eval=FALSE}
 '{
@@ -184,15 +190,16 @@ beersRequestData <- BreweryDB_endpoint(breweryDBKey, "beers", options = list(p =
 library(tidyjson)
 library(tidyverse)
 
-beers <- beersRequestData$data
-
 beers %>% 
   gather_array %>% 
   spread_values(name = jstring("name"))
-
+```
+```{r, eval=FALSE}
 Error in eval(assertion, env) : 
   argument "json.column" is missing, with no default
 ```
+
+
 
 Downgrading the *dplyr* package to version 0.5.0 and even downgrading the *tidyjson* package to version 0.2.1 did not resolve the issue, so I had to devise my own way of accessing the information and making the data frame tidy, using R's apply functions, also known as group of mapping functions, explained beautifully in this [Stack Overflow post](https://stackoverflow.com/questions/3505701/r-grouping-functions-sapply-vs-lapply-vs-apply-vs-tapply-vs-by-vs-aggrega). To extract any data located in a list in a column, I used the following code:
 
@@ -209,7 +216,7 @@ variables <- c("beerId", "beerName", "beerDescription", "abv", "ibu", "styleId",
 descriptions <- c("the id of the beer", "the name of the beer", "the official description of the beer", "the alcohol by volume of the beer (expressed as a percentage", "the IBU (international bittering unit) value of the beer, a measure of how bitter a beer is", "the style id of the beer", "the category id of the style id", "the id of the brewery that makes the beer")
 beerstable <- data.frame(variables, descriptions)
 library(knitr)
-kable(beerstable)
+kable(beerstable, caption = "Beers Data Dictionary")
 ```
 
 with a beer id and a brewery id acting as __primary__ keys of the beers data frame, meaning that the two together uniquely identify one observation in the data frame. 
@@ -222,7 +229,7 @@ variables <- c("breweryId", "breweryName", "breweryDescription", "locationId")
 descriptions <- c("the id of the brewery", "the name of the brewery", "the description of the brewery", "the location id associated with a brewery id (a brewery can have several locations")
 breweriestable <- data.frame(variables, descriptions)
 library(knitr)
-kable(breweriestable)
+kable(breweriestable, caption = "Breweries Data Dictionary")
 ```
   
 Locations are in a separate data dictionary of their own, partially because the BreweryDB API had the locations as their own dictionaries and because there's so much information associated with a location id. The variables in the final locations data dictionary are as follows, with *locationId* being the __primary__ key of the data frame:
@@ -232,57 +239,29 @@ variables <- c("locationId", "locationName", "streetAddress", "locality", "regio
 descriptions <- c("the id of a particular location (geophysical location)", "the name of a location, usually street name", "the address and number of a location", "the city of the location", "the ztate of the region", "the postal code of the location", "the latitude coordinates of the location", "the longitude coordinates of the location", "the kind of location it is: restuarant vs microbrewery for example", "whether that particular location is the primary location for a particular brewery", "the two character country code of a location", "the brewery id of the brewery associated with this particular location")
 locationstable <- data.frame(variables, descriptions)
 library(knitr)
-kable(locationstable)
+kable(locationstable, caption = "Locations Data Dictionary")
 ```
   
-  Finally, I created a styles to categories data dictionary of all the different styles and categories and their mappings, associating styles and style information like the range of alcohol per beer volume content fo that particular style, with *styleId* being the __primary__ key for the data frame. The variables in this dictionary are:
+  Finally, I created a styles to categories data dictionary of all the different styles and categories and their mappings, associating styles and style information like the range of alcohol per beer volume content for that particular style, with *styleId* being the __primary__ key for the data frame. The variables in this dictionary are:
 
 ```{r, echo=FALSE}
 variables <- c("styleId", "categoryId", "name", "shortName", "description", "ibuMin", "ibuMax", "abvMin", "abvMax", "srmMin", "srmMax", "ogMin", "ogMax", "fgMin", "fgMax", "categoryName")
 descriptions <- c("the style id", "the id of the category that style belonged to", "the name of the style", "the name of the style, shortened", "the description of that style", "the minimum international bitterness value of the style", "the maximum international bitterness value of the style", "the minimum alcohol per beer volume content of the style", "the maximum alcohol per beer volume content of the style", "the minimum in the typical SRM range for this style", "the maximum in the typical SRM range for this style", "the minimum in the typical original gravity range for this style", "the maximum in the typical original gravity range for this style", "the minimum in the typical final gravity range for this style", "the maximum in the typical final gravity range for this style", "the name of the category the style belongs to")
 stylestable <- data.frame(variables, descriptions)
 library(knitr)
-kable(stylestable)
+kable(stylestable, caption = "Beer Styles and Categories Data Dictionary")
 ```
-
-Unfortunately, the Python wrapper designed to get RateBeer information by scraping the website did not work as planned. It seems that in the recent weeks, RateBeer has changed the encoding of their website, rendering the wrapper unusable as the encoding of the script and the website are uncompatible, and searching by beer or sending any kind of string as a GET request is unrecognizable by the website and the data returned is unreliable. So this project will focus on exploring the BreweryDB data and building some cool interactive visualizations from it. [CHECK THIS OUT]
-
-Most of us know what abv and ibu is, since these statistics are often displayed on the beer iteself. But what is SRM, and original and final gravity and what does that have to do with beer? 
-
-# SRM & Original and Final Gravity
-
-SRM is short for the [Standard Reference Method](http://brewwiki.com/index.php/Standard_Reference_Method), the color system used by breweries for finished beer and malts. 
-
-```{r kable, echo=FALSE}
-ranges <- c("1.0 - 2.0", "2.0 - 3.0", "3.0 - 4.0", "4.0 - 6.0", "6.0 - 8.0", "8.0 - 10.0", "10.0 - 13.0", "13.0 - 17.0", "17.0 - 20.0", "20.0 - 24.0", "24.0 - 29.0", "29.0 -35.0", "35.0 - 40.0", "40.0+")
-examples <- c("Pale lager", "Pilsener", "Blonde Ale", "Weissbeer", "India Pale Ale", "Saison", "English bitter", "Double IPA", "Amber Ale", "Brown Ale", "Porter", "Stout", "Foreign Stout", "Imperial Stout")
-srmtable <- data.frame(ranges, examples)
-library(knitr)
-kable(srmtable, digits=3)
-```
-
-Gravity, in the context of brewing alcohol, is the density of the [wort](https://en.wikipedia.org/wiki/Wort) or [must](https://en.wikipedia.org/wiki/Must) compared to water. Original gravity refers to the gravity of the liquid before fermentation, and final gravity is its gravity after fermentation. 
-
-# How Beer is Made
-<div id="howbeer">
-  <img src="http://www.eightdegrees.ie/wp-content/uploads/2011/05/the_brewery_process.jpg" id="howbeerismade"><br>
-  <a href="http://www.eightdegrees.ie/wp-content/uploads/2011/05/the_brewery_process.jpg">Image Source</a>
-</div>
-
-Beer is mainly made out of four ingredients: water, yeast, a grain, such as barley, and hops. 
-
-  1. **Malting**: The grain is prepared for boiling by being steeped in water and allowed to partially germinate, softening the kernel. This isolates the natural enzymes that will later on break down the starch into sugar. This process is stopped by heating, drying out and cracking the barley, turning it into malted barley.
-  2. **Mashing**: The malted barley is soaked in hot water, allowing the natural enzymes in the grain to turn starch into sugar for the yeast to consume later during fermentation.
-  3. **Sparging**: After the starch has been turned to sugar, the liquid becomes full of sugar and is separated from the grains in a process called lautering and the liquid that is leftover is now called *wort*.
-  4. **Boiling and Cooling**: The wort is placed in a boil kettle and is boiled to kill any micro-organisms left in the liquid and is also when hops and spices are added over the period of about an hour. Hops provide bitterness in beer, balancing out the sugar. After, the wort is then quickly cooled down, strained, and filtered so that yeast can be added to it without killing it from the heat of the liquid. 
-  5. **Fermentation**: The waiting period for the yeast to consume the sugar and turn it into alcohol, which is typically a few weeks. 
-  6. **Carbonation or Aging**: After the fermentation period, the beer is still uncarbonated. It can either be artifically carbonated or it can be "bottle conditioned" and allowed to age with the CO2 produced by the yeast. homebrewers..
   
-## DATA CLEANING
+<!--The relationships between the beer, breweries, style and categories, and locations dictionaries are shown below, with the dictionaries having primary and foreign keys. 
+
+[insert figure showing the one-to-many relationships by foreign keys, find some schema software uml diagrams?] -->
+
+The main foreign keys among the different dictionaries are ***locationId***, ***breweryId***, ***styleId***, and on a lesser scale ***categoryId*** when making a data dictionary with both style and category information included. 
   
-  WHAT ABOUT SRM??
- 
-Now that we have all of our data, we might want to take a look at the distribution of the most distinguishable beer characteristics, abv (alcohol per beer volume, expressed as a percentagage out of 100) and ibu (international bitterness unit value, which is a measure of how bitter the beer is).
+  
+## Data Cleaning
+
+Now that we have all of our data, we might want to take a look at the distribution of the most distinguishable beer characteristics, abv (alcohol per beer volume, expressed as a percentage out of 100) and ibu (international bitterness unit value, which is a measure of how bitter the beer is).
 
 ```{r, echo=FALSE}
 beersFile <- "data/beers.rds"
@@ -290,20 +269,8 @@ beers <- read_rds(beersFile)
 summary(beers$abv)
 ```
 
-THe summary statistics of the abv of al the beers reveal that the maximum abv is 308. Since a percent
-is out of 100, everything above 100 doesn't make sense and we can remove all the beers whose abv is above 100 since the credibility of that beer is now questionable. Thankfully, there is only 1 beer whose abv is above 100, and we dispose of that observation. Now we visualize the distribution to get a better idea of the characteristics of the abv.
-
-```{r, echo=FALSE, warning=FALSE}
-beers <- beers %>% filter(id != "EHPIi4")
-beers %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1, colour = "BLACK")
-```
-
-It seems that the majority of beer abv is between 0 and 20, so let's visualize observations within that range.
-
-```{r, echo=FALSE}
-beers %>% filter(abv <= 20) %>% ggplot(aes(abv)) + geom_histogram(colour = "BLACK", binwidth = 1)
-```
-
+The summary statistics of the abv of all the beers reveal that the maximum abv is 308. Since a percent
+is out of 100, everything above 100 doesn't make sense and we can remove all the beers whose abv is above 100 since the credibility of that beer is now questionable. Thankfully, there is only 1 beer whose abv is above 100, and we dispose of that observation.
 
 <!--# if we wanted to see the distribution of location types among the dataset
 beersBreweriesLocations %>% ggplot(aes(x = locationTypeDisplay)) + geom_bar()
@@ -317,25 +284,121 @@ Let's take a look at the IBU distributions of all the beers.
 ```{r, echo=FALSE}
 summary(beers$ibu)
 ```
-As seen in this [chart](https://www.brewersfriend.com/2009/01/24/beer-styles-ibu-chart-graph-bitterness-range/), ibu doesn't normally go above 120, with the units being parts per million, and this [article](https://beerconnoisseur.com/articles/whats-meaning-ibu) claiming that the human tongue can't distinguish past 110 IBUs. 
+As seen in this [chart](https://www.brewersfriend.com/2009/01/24/beer-styles-ibu-chart-graph-bitterness-range/), ibu doesn't normally go above 120, with the units being parts per million, and this [many](https://beerconnoisseur.com/articles/whats-meaning-ibu) claiming that the human tongue can't distinguish past 110 IBUs. 
 
 ```{r, echo=FALSE}
 beersHighIBUs <- beers %>% filter(ibu > 120) %>% nrow
 ```
 
-There are `r beersHighIBUs` beers above 120 IBUs, and googling of the first few beers reveals that these are authentic beers, so no observations will be removed for wrong IBU range, but these observations will be left out of exploratory data analysis visualizations to avoid skewing the scale of data. 
+There are `r beersHighIBUs` beers above 120 IBUs, and googling of the first few beers reveals that these are authentic beers, so no observations will be removed for wrong IBU range, but these observations will be left out of exploratory data analysis visualizations to avoid skewing the scale of data.
+
+The next variable we want to look at and see if cleaning is necessary is the SRM range of the beer. We know that anything significantly bigger than 40 or anything that is negative is a clear error, and we might want to toss that observation out.
 
 ```{r, echo=FALSE}
-beers %>% filter(ibu <= 120) %>% select(ibu) %>% summary()
-
-beers %>% filter(ibu <= 120) %>%
-  ggplot(aes(ibu)) + geom_histogram(colour = "BLACK", binwidth = 5)
-
-beers %>% filter(!is.na(srmId) & ibu <= 120) %>% 
-  ggplot(aes(srmId)) + geom_histogram(colour = "BLACK", binwidth = 2)
-
-beers %>% filter(abv <= 20 & ibu <= 120) %>% 
-  ggplot(aes(abv)) + geom_histogram(colour = "BLACK", binwidth = 1)
+summary(beers$srmId)
 ```
 
-It seems that beers are either usually fairly light colored or very dark colored, so either a pale lager or a strong stout.
+Although there are a lot of NA's, it seems that the ranges of SRM for the beers that have that information is valid, and I won't mess around with the NA's for the sake of time in this project.
+
+Since there isn't anything to clean in breweries; we can't tell what is a good description or a bad description of a brewery, and when the data dictionaries are merged with each other on the foreign keys of the dictionaries, beers that don't have a brewery are not included, breweries with no locations are not included, and locations without an associated brewery isn't included, since when we merge, we are using an *inner_join*. 
+
+So we move on to locations. Since most of the variables in location are strings, we must check the address and latitudes and longitudes to make sure they make sense in the context of the observation. Physical street addresses and postal codes are difficult to verify without using more datasets, and errors in these fields will be obvious in geovisualizations and then hopefully we can single out the errors and fix them. However, we can check if state and country are encoded properly in the dataset. 
+
+```{r, echo=FALSE}
+locations <- read_rds("data/locations.rds")
+numStates <- locations %>% filter(countryIsoCode == "US") %>% count(region) %>% nrow
+
+# there are 99 states in the United States according to the dataset, which is erroneous. We expect to see 51 
+# "different" states, the 50 states and then NA for observations without a state 
+
+numStatesNA <- locations %>% filter(countryIsoCode == "US" & is.na(region)) %>% nrow
+```
+Assuming that US state data is much more present than foreign countries, we focus on the US for the cleaning. In the data pulled from the BreweryDB API, there are `r numStates` states in the United States according to the dataset, which is erroneous. We expect to see 52 states, accounting for the 50 states in the US, the District Capital, and NA's. Further exploration reveals that there are `r numStatesNA` locations in the US without a region, which I changed by hand since changing 16 locations by hand is doable. Fixing all other states involved string splitting on the addresses and turning state abbreviations and postal codes to actual state names, so that we have 51 states, including the District capital abbreviated "D.C". Now that our data has been gone through initial cleaning, we can begin to 
+visualize the distribution of a few variables and produce a few tables.
+
+## Exploratory Data Analysis
+Keeping the things we learned in cleaning, we will start visualizing a few variables. Let's visualize the distribution of alcohol per beer volume to get a better idea of the characteristics of the abv.
+
+```{r, echo=FALSE, warning=FALSE}
+beers <- beers %>% filter(id != "EHPIi4")
+beers %>% filter(ibu <= 120) %>% ggplot(aes(abv)) + geom_histogram(binwidth = 1, colour = "BLACK") +
+  ggtitle("Histogram of Alcohol per Beer Volume (in Percentages)") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+It seems that the majority of beer abv is between 0 and 20, so let's visualize observations within that range.
+
+```{r, echo=FALSE}
+oldw <- getOption("warn")
+options(warn = -1)
+
+beers %>% filter(abv <= 20 & ibu <= 120) %>% ggplot(aes(abv)) + geom_histogram(colour = "BLACK", binwidth = 1) + ggtitle("Histogram of Alcohol per Beer (in Percentages)") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+options(warn = oldw)
+```
+
+It definitely seems that most beers do not have an abv above 10%, which is makes sense. Now we take a look at the distribution of beer bitterness measured in IBUs (International Bitterness Units), focusing on beers with IBUs below 120, for reasons stated previously, mainly because most beers do not have IBUs greater than 120. 
+
+```{r, echo=FALSE}
+#library(knitr)
+#beers %>% filter(ibu <= 120) %>% select(ibu) %>% summary() %>% kable
+
+beers %>% filter(ibu <= 120) %>%
+  ggplot(aes(ibu)) + geom_histogram(colour = "BLACK", binwidth = 5) + ggtitle("Histogram of Beers' IBUs") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#beers %>% filter(!is.na(srmId) & ibu <= 120) %>% 
+#  ggplot(aes(srmId)) + geom_histogram(colour = "BLACK", binwidth = 2)
+
+#beers %>% filter(abv <= 20 & ibu <= 120) %>% 
+#  ggplot(aes(abv)) + geom_histogram(colour = "BLACK", binwidth = 1)
+```
+
+The distribution is definitely right skewed, with the majority of beers preferring a slight bitterness, but not pushing it to 100 or even 120. If we limited the distribution to only beers whose abv is at most 20, the histogram still looks about the same.
+
+```{r, echo=FALSE}
+beers <- read_rds("data/beers.rds")
+beers %>% filter(abv <= 20 & ibu <= 120) %>% 
+  ggplot(aes(ibu)) + geom_histogram(colour = "BLACK", binwidth = 5) + ggtitle("Histogram of Beers' IBUs for Beers with an ABV of at Most 20") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Now we want to get an idea of what color beers usually are, and we can view this in a histogram. 
+
+```{r, echo=FALSE}
+oldw <- getOption("warn")
+options(warn = -1)
+
+beers %>% ggplot(aes(srmId)) + geom_histogram(color = "BLACK", binwidth = 1) + ggtitle("Histogram of Beer SRM IDs") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+options(warn = oldw)
+```
+
+It seems that beers are either usually fairly light colored or very dark colored, so either some sort of lager/ale or a strong stout are popular among brewers. 
+
+We can add a few statistics about the states with the most breweries in the US, the top styles in the US, and the top 10 cities in the US with the most breweries. 
+
+```{r, echo=FALSE}
+oldw <- getOption("warn")
+options(warn = -1)
+
+beersBreweriesLocations <- read_rds("data/maindictionary.rds")
+beerCategoriesStyles <- read_rds("data/categoriesStyles.rds")
+library(knitr)
+# top 5 states with the most breweries in the US
+
+beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>% 
+  arrange(desc(n)) %>% rename(frequency = n) %>% head(5) %>% kable(caption = "Top 5 States with the Most Breweries")
+
+# finding the top 5 styles in the US
+top5 <- read_rds("data/top5.rds") 
+top5 %>% kable(caption = "Top 5 Beer Styles in the US")
+
+# finding the top 10 cities with the most breweries in the US
+beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(locality) %>% 
+  arrange(desc(n)) %>% rename(frequency = n) %>% head(10) %>% kable(caption = "Top 10 US Cities with the Most Breweries")
+
+options(warn = oldw)
+```
