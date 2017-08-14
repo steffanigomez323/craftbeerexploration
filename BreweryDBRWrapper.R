@@ -1,4 +1,4 @@
-library(httr)
+suppressPackageStartupMessages(library(httr))
 
 # the BreweryDB API key for authentication
 breweryDBKey <- ""
