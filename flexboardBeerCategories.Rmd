@@ -1,0 +1,91 @@
+---
+title: "Beer Categories and Styles"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages(library(flexdashboard))
+suppressPackageStartupMessages(library(plotly))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(knitr))
+beers <- read_rds("data/beersClean.rds")
+breweries <- read_rds("data/breweriesClean.rds")
+locations <- read_rds("data/locationsClean.rds")
+breweriesLocations <- read_rds("data/breweriesLocations.rds")
+beersBreweriesLocations <- read_rds("data/maindictionary.rds")
+beerCategoriesStyles <- read_rds("data/categoriesStyles.rds")
+```
+
+Column {.tabset data-width=650}
+-----------------------------------------------------------------------
+
+### ABV Ranges
+```{r}
+abvranges <- beerCategoriesStyles %>%
+  ggplot(aes(x = id, y = (abvMin + abvMax) / 2)) + 
+  geom_linerange(aes(ymin=abvMin, ymax=abvMax, group = name, color = categoryName), na.rm = TRUE) + 
+  labs(color = "Category Name", x = "Beer Style Ids", y = "ABV Ranges") + 
+  ylim(0, 27) + 
+  ggtitle("ABV Ranges by Beer Style and Category") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplotly(abvranges + coord_flip(), tooltip = c("group"))
+
+```
+
+### IBU ranges
+```{r}
+iburanges <- beerCategoriesStyles %>% 
+  ggplot(aes(x = id, y = ibuMin)) + 
+  geom_linerange(aes(ymin=ibuMin, ymax=ibuMax, group = name, 
+                     color = categoryName), na.rm = TRUE) + 
+  labs(color = "Category Name", x = "Beer Style Ids", y = "IBU Ranges") +
+  ggtitle("IBU Ranges by Beer Style and Category") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+ggplotly(iburanges + coord_flip(), tooltip = c("group"))
+```
+
+### SRM Color Ranges
+```{r}
+srmranges <- beerCategoriesStyles %>% filter(srmMax <= 50) %>%
+  ggplot(aes(x = id, y = srmMin)) + 
+  geom_linerange(aes(ymin=srmMin, ymax=srmMax, 
+                     group = name, color = categoryName), na.rm = TRUE) + 
+  labs(color = "Category Name", x = "Beer Style Ids", y = "SRM Color Ranges") +
+  ggtitle("SRM Color Ranges by Beer Style and Category") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplotly(srmranges + coord_flip(), tooltip = c("group"))
+```
+
+Column {.tabset data-width=350 data-height=350}
+-----------------------------------------------------------------------
+### Top 5 Styles by Country
+```{r}
+# finding the top 5 styles in the US
+beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(styleId) %>% 
+  arrange(desc(n)) %>% rename(frequency = n, id = styleId) %>% head(5) %>% 
+  inner_join(beerCategoriesStyles, by = c("id")) %>%
+  select(name, frequency) %>% kable
+```
+
+### Top 5 Styles by Region/State
+```{r}
+# finding the top 5 styles in each state
+# chloropleth?
+beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% 
+  count(styleId, region) %>% 
+  arrange(region, desc(n)) %>% 
+  plyr::ddply("region", function(x) head(x[order(x$n, decreasing = TRUE) , ], 5)) %>%
+  rename(frequency = n, id = styleId) %>%
+  inner_join(beerCategoriesStyles, by = c("id")) %>% select(region, name, frequency) %>%
+  kable
+```
+
+Column {.tabset data-width=350 data-height=350}
+-----------------------------------------------------------------------
+

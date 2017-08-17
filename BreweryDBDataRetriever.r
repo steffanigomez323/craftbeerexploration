@@ -80,7 +80,8 @@ retriveBreweryData <- function(APIKey, saveFile) {
                                                                            collapse = " ") })
     
     # the headers left to add if there is a column that is missing before we add them
-    headerstoAdd <- setdiff(c("id", "name", "description"), 
+    headerstoAdd <- setdiff(c("id", "name", "description", "website", "established", 
+                              "isOrganic"), 
                             names(unfilteredBreweriesData))
     
     if (!is_empty(headerstoAdd)) {
@@ -91,11 +92,12 @@ retriveBreweryData <- function(APIKey, saveFile) {
     }
     if (is.null(breweries)) {
       breweries <- unfilteredBreweriesData %>%
-        select(id, name, description, locationId) %>%
+        select(id, name, description, website, established, isOrganic, locationId) %>%
         as_tibble()
     } else {
       breweries <- rbind(breweries, unfilteredBreweriesData %>% 
-                           select(id, name, description, locationId) %>%
+                           select(id, name, description, website, established, 
+                                  isOrganic, locationId) %>%
                            as_tibble())
     }
     
@@ -125,7 +127,8 @@ retrieveLocationsData <- function(APIKey, saveFile) {
     headerstoAdd <- setdiff(c("id", "name", "streetAddress", "locality", "region", 
                               "postalCode", "latitude", "longitude", 
                               "locationTypeDisplay", "isPrimary", "countryIsoCode", 
-                              "inPlanning", "isClosed", "breweryId"), 
+                              "inPlanning", "isClosed", "openToPublic", "yearOpened", 
+                              "website", "breweryId"), 
                             names(unfilteredLocationsData))
     
     if (!is_empty(headerstoAdd)) {
@@ -137,16 +140,19 @@ retrieveLocationsData <- function(APIKey, saveFile) {
     if (is.null(locations)) {
       locations <- unfilteredLocationsData %>%
         select(id, name, streetAddress, locality, region, postalCode, latitude, 
-               longitude, locationTypeDisplay, isPrimary, countryIsoCode, breweryId) %>% 
+               longitude, locationTypeDisplay, isPrimary, countryIsoCode, inPlanning,
+               isClosed, openToPublic, yearOpened, website, breweryId) %>% 
         as_tibble() 
     } else {
       locations <- rbind(locations, unfilteredLocationsData %>% 
                            select(id, name, streetAddress, locality, region, 
                                   postalCode, latitude, longitude, locationTypeDisplay, 
-                                  isPrimary, countryIsoCode, breweryId) %>%
+                                  isPrimary, countryIsoCode, inPlanning, isClosed,
+                                  openToPublic, yearOpened, website, breweryId) %>%
                            as_tibble())
     }
   }
   rm(locationsRequestData, unfilteredLocationsData, headerstoAdd)
   write_rds(locations, saveFile) 
 }
+

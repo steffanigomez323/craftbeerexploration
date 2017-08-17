@@ -1,9 +1,11 @@
-suppressPackageStartupMessages(library(jsonlite)) # for working with JSON data
 suppressPackageStartupMessages(library(tidyverse)) # to transform and clean data
 suppressPackageStartupMessages(library(plotly)) # used for interactive graphs
 suppressPackageStartupMessages(library(tidyr)) # for help with turning JSONs into tidy frames
 suppressPackageStartupMessages(library(outliers)) # for computing outliers
-
+suppressPackageStartupMessages(library(stringr)) # for wrapping strings in ggplot2 labels
+suppressPackageStartupMessages(library(moments)) # for skewness and kurtosis
+suppressPackageStartupMessages(library(maps)) # for plotting spatial visualizations
+ 
 source("BreweryDBDataRetriever.R")
 
 # my BreweryDB API key
@@ -63,6 +65,9 @@ for (attr in names(locations)) {
 
 beers$abv <- as.numeric(beers$abv)
 beers$ibu <- as.numeric(beers$ibu)
+
+breweries$established <- as.numeric(breweries$established) # year is numeric
+locations$yearOpened <- as.numeric(locations$yearOpened) # year is numeric
 
 beerStyles$ibuMin <- as.numeric(beerStyles$ibuMin)
 beerStyles$ibuMax <- as.numeric(beerStyles$ibuMax)
@@ -222,11 +227,13 @@ beerStyles <- arrange(beerStyles, categoryId)
 # adds category information to the diferent styles so we can search styles by category
 beerCategoriesStyles <- beerStyles %>% inner_join(beerCategories %>% rename(categoryId = id, categoryName = name), 
                                                   by = "categoryId")
-
+# splits observations into one breweryId and locationId per row instead of one id 
+# per several location ids
 breweries <- breweries %>% 
   mutate(locationId = strsplit(as.character(locationId), " ")) %>% 
   unnest(locationId)
 
+# splits observations into one beer id and brewery id per row
 beers <- beers %>% 
   mutate(breweryId = strsplit(as.character(breweryId), " ")) %>%
   unnest(breweryId)
@@ -240,8 +247,10 @@ beersandStyles <- beers %>% inner_join(beerStyles %>% rename(styleId = id,
 
 # associates breweries with their location(s)
 breweriesandLocations <- breweries %>% rename(breweryId = id, breweryName = name, 
-                                              breweryDescription = description) %>% 
-  inner_join(locations %>% rename(locationId = id, locationName = name), 
+                                              breweryDescription = description, 
+                                              breweryWebsite = website) %>% 
+  inner_join(locations %>% rename(locationId = id, locationName = name, 
+                                  locationWebsite = website), 
              by = c("locationId", "breweryId"))
 
 # associates beers with the breweries that brew them and the locations of those
@@ -250,17 +259,18 @@ beersBreweriesLocations <- beers %>% rename(beerId = id, beerName = name,
                                             beerDescription = description) %>% 
   inner_join(breweriesandLocations, by = "breweryId")
 
+
 #write_rds(beers, "data/beersClean.rds")
 #write_rds(breweries, "data/breweriesClean.rds")
 #write_rds(locations, "data/locationsClean.rds")
-#write_rds(breweriesandLocations, "data/breweriesLocations.rds")
-#write_rds(beersBreweriesLocations, "data/maindictionary.rds")
-#write_rds(beerCategoriesStyles, "data/categoriesStyles.rds")
+write_rds(breweriesandLocations, "data/breweriesLocations.rds")
+write_rds(beersBreweriesLocations, "data/maindictionary.rds")
+write_rds(beerCategoriesStyles, "data/categoriesStyles.rds")
 ################################ END ###########################################
 
-#beers <- read_rds("data/beersClean.rds")
-#breweries <- read_rds("data/breweriesClean.rds")
-#locations <- read_rds("data/locationsClean.rds")
+beers <- read_rds("data/beersClean.rds")
+breweries <- read_rds("data/breweriesClean.rds")
+locations <- read_rds("data/locationsClean.rds")
 breweriesLocations <- read_rds("data/breweriesLocations.rds")
 beersBreweriesLocations <- read_rds("data/maindictionary.rds")
 beerCategoriesStyles <- read_rds("data/categoriesStyles.rds")
@@ -268,7 +278,8 @@ beerCategoriesStyles <- read_rds("data/categoriesStyles.rds")
 ################################ EDA ###########################################
 
 # if we wanted to see the distribution of location types among the dataset
-beersBreweriesLocations %>% ggplot(aes(x = locationTypeDisplay)) + geom_bar() + 
+beersBreweriesLocations %>% ggplot(aes(x = locationTypeDisplay)) + geom_bar() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 5)) + 
   ggtitle("The Frequency of the Different Kinds of Breweries") +
   labs(x = "Location Type", y = "Frequency") + 
   theme(plot.title = element_text(hjust = 0.5))
@@ -363,6 +374,7 @@ beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(styleId) %>
   select(name, frequency)
 
 # finding the top 5 styles in each state
+# chloropleth?
 beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% 
   count(styleId, region) %>% 
   arrange(region, desc(n)) %>% 
@@ -371,6 +383,7 @@ beersBreweriesLocations %>% filter(countryIsoCode == "US") %>%
   inner_join(beerCategoriesStyles, by = c("id")) %>% select(region, name, frequency)
 
 #   TODO: show ranges of abv per country and per state
+# BUBBLE MAP
 beersBreweriesLocations %>% filter(!is.na(abv)) %>% group_by(countryIsoCode) %>% 
   summarise(minABV = min(abv), maxABV = max(abv))
 
@@ -381,6 +394,7 @@ beersBreweriesLocations %>% filter(!is.na(abv) & countryIsoCode == "US") %>%
 #   TODO: show the top srmIDs per country, state, and locality/postalCode
 #             (since srm ids are correlated with style)
 
+# general SRM distribution over the entire dataset
 beersBreweriesLocations %>% filter(!is.na(srmId)) %>% ggplot(aes(srmId)) + 
   geom_histogram(color = "BLACK", binwidth = 1) +
   labs(x = "SRM ID", y = "Frequency") + 
@@ -391,11 +405,13 @@ beersBreweriesLocations %>% filter(!is.na(srmId)) %>% count(srmId) %>%
                                      arrange(desc(n)) %>% rename(frequency = n)
 
 # by country
+# bubble chart?
 beersBreweriesLocations %>% filter(!is.na(srmId)) %>% count(srmId, countryIsoCode) %>%
   arrange(countryIsoCode, desc(n)) %>% plyr::ddply("countryIsoCode", 
                         function(x) head(x[order(x$n, decreasing = TRUE) , ], 3))
 
 # by state
+# bubble chart
 beersBreweriesLocations %>% filter(!is.na(srmId) & countryIsoCode == "US") %>% 
   count(srmId, region) %>% arrange(region, desc(n)) %>% 
   plyr::ddply("region", function(x) head(x[order(x$n, decreasing = TRUE) , ], 3))
@@ -421,16 +437,62 @@ beersBreweriesLocations %>% group_by(styleId) %>%
 #   TODO: show the most countries, states, and localities with the most breweries
 
 # top 5 states with the most breweries in the US
-beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>% 
-  arrange(desc(n)) %>% rename(frequency = n) %>% head(5)
+# BUBBLE MAP
+#chloropleth of number of breweries across the US
+topBreweryStates <- beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>% 
+  arrange(desc(n)) %>% rename(frequency = n) %>%
+  rename(state = region) %>% 
+  mutate(region=tolower(state)) 
+
+ggplot() + geom_map(data=map_data("state"), map=map_data("state"),
+                 aes(x=long, y=lat,map_id=region),
+                 fill="#ffffff", color="#ffffff", size=0.15) + 
+  geom_map(data=topBreweryStates, map=map_data("state"), 
+           aes(fill=frequency, map_id=region), color="#ffffff", size=0.15)
+
+
+# for plotly, have to have state abbreviations
+
+state <- c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "DC", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming")
+  
+abbreviations <- c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY")
+
+# DOING PLOTLY MAPS IS COMPLICATED!!!!!
+
+# give state boundaries a white border
+l <- list(color = toRGB("white"), width = 2)
+# specify some map projection/options
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+
+combined <- sort(union(levels(topBreweryStates$state), levels(stateAbbreviations$state)))
+n <- left_join(mutate(topBreweryStates, state=factor(state, levels=combined)),
+               mutate(stateAbbreviations, state=factor(state, levels=combined)))
+plot_geo(n, locationmode = 'USA-states') %>%
+  add_trace(
+    z = ~frequency, text = ~state, locations = ~abbreviations,
+    color = ~frequency, colors = 'Purples'
+  )
 
 # top 5 countries with the most breweries
-beersBreweriesLocations %>% count(countryIsoCode) %>% arrange(desc(n)) %>% 
+# BUBBLE MAP
+#chloropleth of number of breweries across the world, with the whole dataset 
+breweriesandLocations %>% count(countryIsoCode) %>% arrange(desc(n)) %>% 
   rename(frequency = n) %>% head(5)
 
 # finding the top 10 cities with the most breweries (all happen to be in the US)
-beersBreweriesLocations %>% filter(!is.na(locality)) %>% count(locality) %>% 
+# CAN BE SHOWN IN A BUBBLE MAP
+breweriesandLocations %>% filter(!is.na(locality)) %>% count(locality) %>% 
   arrange(desc(n)) %>% rename(frequency = n) %>% head(10)
+
+#   TODO: top 3 cities with the most beers in each state in the US
+# zoomed in bubble map
+breweriesandLocations %>% filter(countryIsoCode == "US") %>% count(locality, region) %>%
+  arrange(region, desc(n)) %>% plyr::ddply("region", function(x) head(x[order(x$n, decreasing = TRUE) , ], 3))
 
 #   TODO: do all of this grouping by breweryType
 
@@ -445,18 +507,22 @@ locations %>% filter(countryIsoCode == "US") %>% count(locationTypeDisplay) %>%
 # the 3 top kinds of locations by states in the US
 locations %>% filter(countryIsoCode == "US") %>% count(locationTypeDisplay, region) %>% arrange(region, desc(n)) %>% plyr::ddply("region", function(x) head(x[order(x$n, decreasing = TRUE) , ], 3))
 
-#   TODO: top countries with the most beers
-beersBreweriesLocations %>% count(countryIsoCode) %>% arrange(desc(n))
-
-#   TODO: top states in the US with the most beers
-beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(region) %>%
-  arrange(desc(n))
-
-#   TODO: top cities with the most beers in each state in the US
-beersBreweriesLocations %>% filter(countryIsoCode == "US") %>% count(locality, region) %>%
-  arrange(region, desc(n)) %>% plyr::ddply("region", function(x) head(x[order(x$n, decreasing = TRUE) , ], 3))
+#   TODO: do comparisons by style and category
+# can use dot matrix chart for some of these hopefully
 
 #   TODO: compare all of this information
+#   TODO: can still make charts to compare ABV, IBU, and SRM color ranges against each other in 2D plots
+#       by country and state
+    # heatmaps would be great for these kind of comparisons
+
+#   TODO: organize states into one of four groups according to US Census Bureau
+#           c("Northeast", "Midwest", "South", "West") and then do visualizations based on that
+#     from: https://en.wikipedia.org/wiki/List_of_regions_of_the_United_States#Census_Bureau-designated_regions_and_divisions
+stateRegions <- list()
+stateRegions[[  "Northeast"]] <- c("Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island", "Vermont", "New Jersey", "New York", "Pennsylvania")
+stateRegions[[ "Midwest" ]] <- c("Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin", "Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska", "North Dakota","South Dakota")
+stateRegions[[ "South" ]] <- c("Delaware", "Florida", "Georgia", "Maryland", "North Carolina", "South Carolina", "Virginia", "DC", "West Virginia", "Alabama", "Kentucky", "Mississippi", "Tennessee", "Arkansas", "Louisiana", "Oklahoma", "Texas")
+stateRegions[[ "West" ]] <- c("Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico", "Utah", "Wyoming", "Alaska", "California", "Hawaii", "Oregon", "Washington")
 
 
 # getting statistics per country & state would also be great
